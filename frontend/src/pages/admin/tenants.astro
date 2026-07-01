@@ -1,0 +1,8 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import TenantsApp from '../../react-pages/superadmin/Tenants.jsx';
+---
+
+<Layout title="إدارة المتاجر | SaaS Admin">
+	<TenantsApp client:only="react" />
+</Layout>

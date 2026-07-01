@@ -119,6 +119,55 @@ app.post('/api/protected/sync', async (c) => {
     }
 })
 
+// --- SUPER ADMIN ENDPOINTS ---
+app.get('/api/protected/admin/tenants', async (c) => {
+    const payload = c.get('jwtPayload')
+    if (payload.role !== 'superadmin') return c.json({ error: 'Unauthorized' }, 403)
+
+    const tenants = await c.env.DB.prepare(
+        `SELECT t.*, u.username as admin_username, s.plan_name, s.end_date 
+         FROM tenants t 
+         LEFT JOIN users u ON u.tenant_id = t.id AND u.role = 'admin'
+         LEFT JOIN subscriptions s ON s.tenant_id = t.id`
+    ).all()
+    return c.json(tenants.results)
+})
+
+app.post('/api/protected/admin/tenants', async (c) => {
+    const payload = c.get('jwtPayload')
+    if (payload.role !== 'superadmin') return c.json({ error: 'Unauthorized' }, 403)
+
+    const { store_name, owner_name, email, admin_username, admin_password, plan_name, months } = await c.req.json()
+    const tenantId = crypto.randomUUID()
+    const userId = crypto.randomUUID()
+    const subId = crypto.randomUUID()
+
+    const hashedPassword = await hashPassword(admin_password)
+
+    const endDate = new Date()
+    endDate.setMonth(endDate.getMonth() + parseInt(months || '1'))
+
+    try {
+        await c.env.DB.batch([
+            c.env.DB.prepare("INSERT INTO tenants (id, store_name, owner_name, email) VALUES (?, ?, ?, ?)").bind(tenantId, store_name, owner_name, email),
+            c.env.DB.prepare("INSERT INTO users (id, tenant_id, name, username, password, role) VALUES (?, ?, ?, ?, ?, 'admin')").bind(userId, tenantId, owner_name, admin_username, hashedPassword),
+            c.env.DB.prepare("INSERT INTO subscriptions (id, tenant_id, plan_name, start_date, end_date) VALUES (?, ?, ?, ?, ?)").bind(subId, tenantId, plan_name || 'Basic', new Date().toISOString(), endDate.toISOString()),
+            c.env.DB.prepare("INSERT INTO settings (id, tenant_id, store_name) VALUES (?, ?, ?)").bind(crypto.randomUUID(), tenantId, store_name)
+        ])
+        return c.json({ success: true, tenant_id: tenantId })
+    } catch (e: any) {
+        return c.json({ error: 'Failed to create tenant', details: e.message }, 500)
+    }
+})
+
+app.put('/api/protected/admin/tenants/:id/status', async (c) => {
+    const payload = c.get('jwtPayload')
+    if (payload.role !== 'superadmin') return c.json({ error: 'Unauthorized' }, 403)
+    const { status } = await c.req.json()
+    await c.env.DB.prepare("UPDATE tenants SET status = ? WHERE id = ?").bind(status, c.req.param('id')).run()
+    return c.json({ success: true })
+})
+
 // --- WEBRTC SIGNALING (Cloudflare WebSocket) ---
 app.get('/api/signaling', (c) => {
     // Cloudflare Workers natively supports WebSockets.

@@ -8,7 +8,7 @@ import {
 import api from '../api/axios';
 
 export default function Layout({ children, currentPath = '/' }) {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isSuperAdmin } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
   const [storeName, setStoreName] = useState('نظام POS');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -50,7 +50,12 @@ export default function Layout({ children, currentPath = '/' }) {
     { to: '/attendance', label: 'حضوري', icon: Clock },
   ];
 
-  const links = isAdmin ? adminLinks : cashierLinks;
+  const superAdminLinks = [
+    { to: '/admin/tenants', label: 'إدارة المتاجر', icon: Building2 },
+    { to: '/admin/subscriptions', label: 'الاشتراكات والباقات', icon: ClipboardList },
+  ];
+
+  const links = isSuperAdmin ? superAdminLinks : (isAdmin ? adminLinks : cashierLinks);
 
   const handleLogout = () => {
     logout();
@@ -111,7 +116,7 @@ export default function Layout({ children, currentPath = '/' }) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
-              <p className="text-xs text-gray-500">{user?.role === 'admin' ? 'مدير' : 'كاشير'}</p>
+              <p className="text-xs text-gray-500">{isSuperAdmin ? 'مشرف النظام' : (user?.role === 'admin' ? 'مدير' : 'كاشير')}</p>
             </div>
             <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 transition-colors" title="تسجيل الخروج">
               <LogOut className="w-4 h-4" />
@@ -150,7 +155,7 @@ export default function Layout({ children, currentPath = '/' }) {
                 <div className="absolute left-0 mt-1 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 animate-fade-in">
                   <div className="px-3 py-2 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                    <p className="text-xs text-gray-500">{user?.role === 'admin' ? 'مدير النظام' : 'كاشير'}</p>
+                    <p className="text-xs text-gray-500">{isSuperAdmin ? 'مشرف عام (SaaS)' : (user?.role === 'admin' ? 'مدير النظام' : 'كاشير')}</p>
                   </div>
                   <button
                     onClick={handleLogout}

@@ -19,7 +19,11 @@ export default function Login() {
     try {
       const user = await login(form.username, form.password);
       toast.success(`مرحباً ${user.name}!`);
-      window.location.href = user.role === 'cashier' ? '/pos' : '/';
+      if (user.role === 'superadmin') {
+        window.location.href = '/admin/tenants';
+      } else {
+        window.location.href = user.role === 'cashier' ? '/pos' : '/';
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || 'خطأ في تسجيل الدخول');
     } finally {
