@@ -16,6 +16,10 @@ import Purchases from './pages/Purchases';
 import Expenses from './pages/Expenses';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import ReloadPrompt from './components/ReloadPrompt';
+import { initWebRTC } from './utils/webrtcManager';
+import { startBackgroundSync } from './utils/syncManager';
+import { useEffect } from 'react';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -36,7 +40,28 @@ function AdminRoute({ children }) {
 }
 
 function AppRoutes() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      // Initialize Background Sync
+      const token = localStorage.getItem('pos_token') || 'offline-token';
+      startBackgroundSync(token);
+      
+      // Initialize WebRTC P2P Sync on Local Network
+      initWebRTC(user.tenantId || 'tenant-1', isAdmin);
+
+      // Listen for background data changes from other peers
+      const handleDbChange = (e) => {
+        toast('تم تحديث البيانات محلياً', { icon: '🔄', style: { background: '#3B82F6', color: '#fff' } });
+        // Ideally we would trigger a React state refresh here if using a state manager
+      };
+      window.addEventListener('db_changed', handleDbChange);
+      
+      return () => window.removeEventListener('db_changed', handleDbChange);
+    }
+  }, [user, isAdmin]);
+
   return (
     <Routes>
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
@@ -70,6 +95,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <AppRoutes />
+        <ReloadPrompt />
         <Toaster
           position="bottom-left"
           toastOptions={{
