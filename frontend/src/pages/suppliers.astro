@@ -1,16 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import DashboardLayout from '../components/Layout.jsx';
 import Suppliers from '../react-pages/Suppliers.jsx';
-import { AuthProvider } from '../context/AuthContext.jsx';
-import { Toaster } from 'react-hot-toast';
+import App from '../components/App.jsx';
 ---
 
 <Layout title="نظام POS - Suppliers">
-	<AuthProvider client:only="react">
-		<DashboardLayout client:only="react" currentPath="/suppliers">
-			<Suppliers client:only="react" />
-		</DashboardLayout>
-	</AuthProvider>
-	<Toaster client:only="react" />
+	<App client:only="react" component={Suppliers} currentPath="/suppliers" />
 </Layout>

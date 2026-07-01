@@ -1,16 +1,9 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import DashboardLayout from '../../components/Layout.jsx';
 import SubscriptionsApp from '../../react-pages/superadmin/Subscriptions.jsx';
-import { AuthProvider } from '../../context/AuthContext.jsx';
-import { Toaster } from 'react-hot-toast';
+import App from '../../components/App.jsx';
 ---
 
 <Layout title="إدارة الاشتراكات | SaaS Admin">
-	<AuthProvider client:only="react">
-		<DashboardLayout client:only="react" currentPath="/admin/subscriptions">
-			<SubscriptionsApp client:only="react" />
-		</DashboardLayout>
-	</AuthProvider>
-	<Toaster client:only="react" />
+	<App client:only="react" component={SubscriptionsApp} currentPath="/admin/subscriptions" />
 </Layout>

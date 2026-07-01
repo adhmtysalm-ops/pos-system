@@ -1,13 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Login from '../react-pages/Login.jsx';
-import { AuthProvider } from '../context/AuthContext.jsx';
-import { Toaster } from 'react-hot-toast';
+import App from '../components/App.jsx';
 ---
 
 <Layout title="تسجيل الدخول - نظام POS">
-	<AuthProvider client:only="react">
-		<Login client:only="react" />
-	</AuthProvider>
-	<Toaster client:only="react" />
+	<App client:only="react" component={Login} hideLayout={true} />
 </Layout>
