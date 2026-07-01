@@ -17,6 +17,10 @@ const notifyChange = (table) => {
 const offlineApi = {
   get: async (url, config = {}) => {
     try {
+      if (url === '/auth/me') {
+          return { data: getCurrentUser() };
+      }
+      
       const parts = url.split('/').filter(Boolean);
       const table = parts[0];
       const id = parts[1];
@@ -64,7 +68,7 @@ const offlineApi = {
   },
 
   post: async (url, payload) => {
-    if (url === '/login') {
+    if (url === '/login' || url === '/auth/login') {
         try {
             // Attempt to login using the real Cloudflare Worker API
             const response = await axios.post('https://pos-saas-backend.adhomatya.workers.dev/api/login', payload);
