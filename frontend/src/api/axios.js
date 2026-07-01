@@ -1,6 +1,7 @@
 import { db, queueSyncOperation } from '../db';
 import { v4 as uuidv4 } from 'uuid';
 import { broadcastLocalMutation } from '../utils/webrtcManager';
+import axios from 'axios';
 
 // Fallback user for offline mock
 const getCurrentUser = () => {
@@ -64,8 +65,24 @@ const offlineApi = {
 
   post: async (url, payload) => {
     if (url === '/login') {
-        // Mock offline login using local storage for now (should ideally sync with Worker)
-        return { data: { token: 'mock-offline-token', user: getCurrentUser() } };
+        try {
+            // Attempt to login using the real Cloudflare Worker API
+            const response = await axios.post('https://pos-saas-backend.adhomatya.workers.dev/api/login', payload);
+            
+            // Cache the token and user info for future offline use
+            localStorage.setItem('pos_token', response.data.token);
+            localStorage.setItem('pos_user', JSON.stringify(response.data.user));
+            
+            return { data: response.data };
+        } catch (error) {
+            // If offline, check if they have cached credentials (basic offline mock)
+            console.error('Login error (might be offline):', error);
+            const cachedUser = getCurrentUser();
+            if (cachedUser) {
+                return { data: { token: localStorage.getItem('pos_token') || 'offline-token', user: cachedUser } };
+            }
+            throw error;
+        }
     }
 
     const parts = url.split('/').filter(Boolean);
