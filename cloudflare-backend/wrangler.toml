@@ -6,6 +6,6 @@ node_compat = true
 [[d1_databases]]
 binding = "DB"
 database_name = "pos-db"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "f4114d45-3ebd-459e-b6f7-82e509de1900"
 # local preview configuration
 preview_database_id = "DB"

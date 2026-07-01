@@ -2,7 +2,7 @@ import { db } from '../db';
 import axios from 'axios'; // We can use axios to push to Cloudflare
 
 // Cloudflare API URL
-const CLOUDFLARE_API = '/api/protected/sync';
+const CLOUDFLARE_API = 'https://pos-saas-backend.adhomatya.workers.dev/api/protected/sync';
 
 export const startBackgroundSync = (token) => {
     // Attempt to sync immediately when coming online
