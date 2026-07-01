@@ -1,8 +1,16 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import DashboardLayout from '../../components/Layout.jsx';
 import TenantsApp from '../../react-pages/superadmin/Tenants.jsx';
+import { AuthProvider } from '../../context/AuthContext.jsx';
+import { Toaster } from 'react-hot-toast';
 ---
 
 <Layout title="إدارة المتاجر | SaaS Admin">
-	<TenantsApp client:only="react" />
+	<AuthProvider client:only="react">
+		<DashboardLayout client:only="react" currentPath="/admin/tenants">
+			<TenantsApp client:only="react" />
+		</DashboardLayout>
+	</AuthProvider>
+	<Toaster client:only="react" />
 </Layout>
