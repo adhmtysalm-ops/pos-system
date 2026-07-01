@@ -1,0 +1,16 @@
+---
+import Layout from '../layouts/Layout.astro';
+import DashboardLayout from '../components/Layout.jsx';
+import Customers from '../react-pages/Customers.jsx';
+import { AuthProvider } from '../context/AuthContext.jsx';
+import { Toaster } from 'react-hot-toast';
+---
+
+<Layout title="نظام POS - Customers">
+	<AuthProvider client:only="react">
+		<DashboardLayout client:only="react" currentPath="/customers">
+			<Customers client:only="react" />
+		</DashboardLayout>
+	</AuthProvider>
+	<Toaster client:only="react" />
+</Layout>

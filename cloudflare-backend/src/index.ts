@@ -12,6 +12,14 @@ const app = new Hono<{ Bindings: Bindings }>()
 // Middleware
 app.use('*', cors())
 
+// Utility: Hash Password (SHA-256)
+async function hashPassword(password: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // Basic Health Check
 app.get('/health', (c) => c.json({ status: 'ok', message: 'POS SaaS Cloudflare Worker Running' }))
 
@@ -22,10 +30,12 @@ app.post('/api/login', async (c) => {
   
   if (!username || !password) return c.json({ error: 'Username and password required' }, 400)
 
-  // Find user and their tenant (using raw password for simplicity in this draft, should be hashed)
+  const hashedPassword = await hashPassword(password)
+
+  // Find user and their tenant (using hashed password)
   const user: any = await c.env.DB.prepare(
     "SELECT id, tenant_id, name, role FROM users WHERE username = ? AND password = ? AND active = 1"
-  ).bind(username, password).first()
+  ).bind(username, hashedPassword).first()
 
   if (!user) {
     return c.json({ error: 'Invalid credentials or inactive account' }, 401)
