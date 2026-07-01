@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, ShoppingCart, Package, Tag, Users, Truck,
@@ -8,9 +7,8 @@ import {
 } from 'lucide-react';
 import api from '../api/axios';
 
-export default function Layout() {
+export default function Layout({ children, currentPath = '/' }) {
   const { user, logout, isAdmin } = useAuth();
-  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
   const [storeName, setStoreName] = useState('نظام POS');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -56,7 +54,7 @@ export default function Layout() {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    window.location.href = '/login';
   };
 
   return (
@@ -88,22 +86,21 @@ export default function Layout() {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          {links.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
+          {links.map(({ to, label, icon: Icon, end }) => {
+            const isActive = end ? currentPath === to : currentPath.startsWith(to);
+            return (
+            <a
               key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                `sidebar-link ${isActive ? 'active' : ''}`
-              }
+              href={to}
+              className={`sidebar-link ${isActive ? 'active' : ''}`}
               onClick={() => {
                 if (window.innerWidth < 768) setSidebarOpen(false);
               }}
             >
               <Icon className="w-4 h-4 shrink-0" />
               <span className="truncate">{label}</span>
-            </NavLink>
-          ))}
+            </a>
+          )})}
         </nav>
 
         {/* User Info */}
@@ -170,7 +167,7 @@ export default function Layout() {
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto">
-          <Outlet />
+          {children}
         </main>
       </div>
     </div>
