@@ -1,9 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Login from '../react-pages/Login.jsx';
 import App from '../components/App.jsx';
 ---
 
 <Layout title="تسجيل الدخول - نظام POS">
-	<App client:only="react" component={Login} hideLayout={true} currentPath="/login" />
+	<App client:only="react" pagePath="Login" hideLayout={true} currentPath="/login" />
 </Layout>

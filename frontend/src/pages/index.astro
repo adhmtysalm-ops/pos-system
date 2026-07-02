@@ -1,9 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Dashboard from '../react-pages/Dashboard.jsx';
 import App from '../components/App.jsx';
 ---
 
 <Layout title="نظام POS - لوحة التحكم">
-	<App client:only="react" component={Dashboard} currentPath="/" />
+	<App client:only="react" pagePath="Dashboard" currentPath="/" />
 </Layout>

@@ -1,9 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Settings from '../react-pages/Settings.jsx';
 import App from '../components/App.jsx';
 ---
 
 <Layout title="نظام POS - Settings">
-	<App client:only="react" component={Settings} currentPath="/settings" />
+	<App client:only="react" pagePath="Settings" currentPath="/settings" />
 </Layout>

@@ -1,9 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Sales from '../react-pages/Sales.jsx';
 import App from '../components/App.jsx';
 ---
 
 <Layout title="نظام POS - Sales">
-	<App client:only="react" component={Sales} currentPath="/sales" />
+	<App client:only="react" pagePath="Sales" currentPath="/sales" />
 </Layout>

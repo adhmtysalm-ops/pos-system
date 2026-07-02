@@ -1,9 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Attendance from '../react-pages/Attendance.jsx';
 import App from '../components/App.jsx';
 ---
 
 <Layout title="نظام POS - Attendance">
-	<App client:only="react" component={Attendance} currentPath="/attendance" />
+	<App client:only="react" pagePath="Attendance" currentPath="/attendance" />
 </Layout>

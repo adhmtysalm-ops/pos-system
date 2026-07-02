@@ -1,9 +1,8 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import TenantsApp from '../../react-pages/superadmin/Tenants.jsx';
 import App from '../../components/App.jsx';
 ---
 
 <Layout title="إدارة المتاجر | SaaS Admin">
-	<App client:only="react" component={TenantsApp} currentPath="/admin/tenants" />
+	<App client:only="react" pagePath="superadmin/Tenants" currentPath="/admin/tenants" />
 </Layout>

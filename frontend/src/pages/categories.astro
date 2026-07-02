@@ -1,9 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Categories from '../react-pages/Categories.jsx';
 import App from '../components/App.jsx';
 ---
 
 <Layout title="نظام POS - Categories">
-	<App client:only="react" component={Categories} currentPath="/categories" />
+	<App client:only="react" pagePath="Categories" currentPath="/categories" />
 </Layout>

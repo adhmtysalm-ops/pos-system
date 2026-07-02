@@ -1,9 +1,8 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import SubscriptionsApp from '../../react-pages/superadmin/Subscriptions.jsx';
 import App from '../../components/App.jsx';
 ---
 
 <Layout title="إدارة الاشتراكات | SaaS Admin">
-	<App client:only="react" component={SubscriptionsApp} currentPath="/admin/subscriptions" />
+	<App client:only="react" pagePath="superadmin/Subscriptions" currentPath="/admin/subscriptions" />
 </Layout>

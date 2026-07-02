@@ -2,7 +2,12 @@ import { AuthProvider } from '../context/AuthContext';
 import DashboardLayout from './Layout';
 import { Toaster } from 'react-hot-toast';
 
-export default function App({ component: Component, currentPath, hideLayout = false, ...props }) {
+const pages = import.meta.glob('../react-pages/**/*.jsx', { eager: true });
+
+export default function App({ pagePath, currentPath, hideLayout = false, ...props }) {
+  const module = pages[`../react-pages/${pagePath}.jsx`];
+  const Component = module ? module.default : () => <div>Page not found: {pagePath}</div>;
+
   return (
     <AuthProvider>
       {hideLayout ? (
