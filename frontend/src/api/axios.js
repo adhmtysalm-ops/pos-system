@@ -30,10 +30,24 @@ const offlineApi = {
         // Implement basic aggregations for reports
         if (id === 'dashboard') {
             const sales = await db.sales.toArray();
-            const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0);
-            return { data: { today_sales: totalRevenue, month_sales: totalRevenue, products_count: await db.products.count() } };
+            const totalRevenue = sales.reduce((sum, s) => sum + parseFloat(s.total || 0), 0);
+            
+            const customersCount = db.customers ? await db.customers.count() : 0;
+            const productsCount = db.products ? await db.products.count() : 0;
+
+            return { 
+                data: { 
+                    today: { sales: { total: totalRevenue, count: sales.length }, expenses: 0 },
+                    month: { sales: { total: totalRevenue, count: sales.length }, expenses: 0 },
+                    products: productsCount,
+                    low_stock: 0,
+                    customers: customersCount,
+                    last7Days: [{ date: 'اليوم', total: totalRevenue }],
+                    topProducts: []
+                } 
+            };
         }
-        return { data: [] };
+        return { data: null };
       }
 
       if (!db[table]) return { data: [] }; // Mock empty for unhandled tables
