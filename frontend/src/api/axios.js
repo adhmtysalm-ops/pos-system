@@ -84,6 +84,14 @@ const offlineApi = {
   post: async (url, payload) => {
     if (url === '/login' || url === '/auth/login') {
         try {
+            // Mock offline super admin login for easy testing
+            if (payload.username === 'superadmin' && payload.password === '123456') {
+                const superUser = { id: 'super-1', role: 'superadmin', name: 'Super Admin', tenantId: null };
+                localStorage.setItem('pos_token', 'super-mock-token');
+                localStorage.setItem('pos_user', JSON.stringify(superUser));
+                return { data: { token: 'super-mock-token', user: superUser } };
+            }
+
             // Attempt to login using the real Cloudflare Worker API
             const response = await axios.post('https://pos-saas-backend.adhomatya.workers.dev/api/login', payload);
             
