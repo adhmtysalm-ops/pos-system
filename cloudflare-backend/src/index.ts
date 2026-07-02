@@ -7,7 +7,17 @@ type Bindings = {
   JWT_SECRET: string
 }
 
-const app = new Hono<{ Bindings: Bindings }>()
+const app = new Hono<{ 
+  Bindings: Bindings
+  Variables: {
+    jwtPayload: {
+      userId: string
+      tenantId: string
+      role: string
+      exp: number
+    }
+  }
+}>()
 
 // Middleware
 app.use('*', cors())
@@ -77,7 +87,7 @@ app.post('/api/login', async (c) => {
 
 // --- PROTECTED ROUTES MIDDLEWARE ---
 app.use('/api/protected/*', async (c, next) => {
-    const jwtMiddleware = jwt({ secret: c.env.JWT_SECRET || 'fallback-secret-123' })
+    const jwtMiddleware = jwt({ secret: c.env.JWT_SECRET || 'fallback-secret-123', alg: 'HS256' })
     return jwtMiddleware(c, next)
 })
 
