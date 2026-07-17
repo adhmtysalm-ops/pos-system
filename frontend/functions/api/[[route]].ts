@@ -456,9 +456,40 @@ app.delete('/api/protected/products/:id', async (c) => {
 // ─── Tenant-Side: Customers ───────────────────────────────────────────────────
 
 app.get('/api/protected/customers', async (c) => {
-  const p = c.get('jwtPayload'); if (!p.tenantId) return c.json([])
-  const rows = await c.env.DB.prepare('SELECT * FROM customers WHERE tenant_id = ? ORDER BY name ASC').bind(p.tenantId).all()
-  return c.json(rows.results || [])
+  const p = c.get('jwtPayload'); if (!p.tenantId) return c.json({ data: [], total: 0 })
+  const search = c.req.query('search') || ''
+  const hasDebt = c.req.query('has_debt') === 'true'
+  const page = parseInt(c.req.query('page') || '1')
+  const limit = parseInt(c.req.query('limit') || '50')
+  const offset = (page - 1) * limit
+
+  let q = 'SELECT *, balance as total_debt FROM customers WHERE tenant_id = ?'
+  let countQ = 'SELECT COUNT(*) as total FROM customers WHERE tenant_id = ?'
+  const params: any[] = [p.tenantId]
+
+  if (search) {
+    q += ' AND (name LIKE ? OR phone LIKE ?)'
+    countQ += ' AND (name LIKE ? OR phone LIKE ?)'
+    params.push(`%${search}%`, `%${search}%`)
+  }
+
+  if (hasDebt) {
+    q += ' AND balance > 0'
+    countQ += ' AND balance > 0'
+  }
+
+  q += ' ORDER BY name ASC LIMIT ? OFFSET ?'
+  const dataParams = [...params, limit, offset]
+
+  const [countRes, rowsRes] = await Promise.all([
+    c.env.DB.prepare(countQ).bind(...params).first(),
+    c.env.DB.prepare(q).bind(...dataParams).all()
+  ])
+
+  return c.json({
+    data: rowsRes.results || [],
+    total: (countRes as any)?.total || 0
+  })
 })
 
 app.post('/api/protected/customers', async (c) => {
@@ -720,6 +751,34 @@ app.put('/api/protected/sales/:id/status', async (c) => {
   return c.json({ success: true })
 })
 
+app.delete('/api/protected/sales/:id', async (c) => {
+  const p = c.get('jwtPayload'); if (!p.tenantId || p.role === 'cashier') return c.json({ error: 'Unauthorized' }, 403)
+  const saleId = c.req.param('id')
+  
+  const sale: any = await c.env.DB.prepare('SELECT status, remaining, customer_id FROM sales WHERE id=? AND tenant_id=?').bind(saleId, p.tenantId).first()
+  if (!sale) return c.json({ error: 'Sale not found' }, 404)
+
+  const items = await c.env.DB.prepare('SELECT product_id, quantity FROM sale_items WHERE sale_id=? AND tenant_id=?').bind(saleId, p.tenantId).all()
+  const stmts: any[] = []
+
+  if (sale.status !== 'refunded') {
+    items.results?.filter((i: any) => i.product_id).forEach((i: any) => 
+      stmts.push(c.env.DB.prepare('UPDATE products SET stock = stock + ? WHERE id = ? AND tenant_id = ?').bind(i.quantity, i.product_id, p.tenantId))
+    )
+  }
+
+  if (sale.customer_id && sale.remaining > 0) {
+    stmts.push(c.env.DB.prepare('UPDATE customers SET balance = balance - ? WHERE id = ? AND tenant_id = ?').bind(sale.remaining, sale.customer_id, p.tenantId))
+  }
+
+  stmts.push(c.env.DB.prepare('DELETE FROM customer_payments WHERE sale_id=? AND tenant_id=?').bind(saleId, p.tenantId))
+  stmts.push(c.env.DB.prepare('DELETE FROM sale_items WHERE sale_id=? AND tenant_id=?').bind(saleId, p.tenantId))
+  stmts.push(c.env.DB.prepare('DELETE FROM sales WHERE id=? AND tenant_id=?').bind(saleId, p.tenantId))
+
+  await c.env.DB.batch(stmts)
+  return c.json({ success: true })
+})
+
 // ─── Tenant-Side: Suppliers ───────────────────────────────────────────────────
 
 app.get('/api/protected/suppliers', async (c) => {
@@ -771,6 +830,46 @@ app.post('/api/protected/purchases', async (c) => {
   if (b.supplier_id && b.remaining > 0) stmts.push(c.env.DB.prepare('UPDATE suppliers SET balance = balance + ? WHERE id = ? AND tenant_id = ?').bind(b.remaining, b.supplier_id, p.tenantId))
   await c.env.DB.batch(stmts)
   return c.json({ success: true, id: orderId, order_number: orderNum })
+})
+
+app.get('/api/protected/purchases/:id', async (c) => {
+  const p = c.get('jwtPayload'); if (!p.tenantId) return c.json({}, 403)
+  const order: any = await c.env.DB.prepare('SELECT * FROM purchase_orders WHERE id = ? AND tenant_id = ?').bind(c.req.param('id'), p.tenantId).first()
+  if (!order) return c.json({ error: 'Not found' }, 404)
+  const items = await c.env.DB.prepare('SELECT * FROM purchase_items WHERE order_id = ? AND tenant_id = ?').bind(c.req.param('id'), p.tenantId).all()
+  return c.json({ ...order, items: items.results || [] })
+})
+
+app.put('/api/protected/purchases/:id', async (c) => {
+  const p = c.get('jwtPayload'); if (!p.tenantId || p.role === 'cashier') return c.json({ error: 'Unauthorized' }, 403)
+  const b = await c.req.json();
+  const orderId = c.req.param('id')
+  
+  const oldOrder: any = await c.env.DB.prepare('SELECT status FROM purchase_orders WHERE id=? AND tenant_id=?').bind(orderId, p.tenantId).first()
+  if (!oldOrder) return c.json({ error: 'Order not found' }, 404)
+
+  const stmts: any[] = []
+
+  if (oldOrder.status === 'received') {
+    const oldItems = await c.env.DB.prepare('SELECT product_id, quantity FROM purchase_items WHERE order_id=? AND tenant_id=?').bind(orderId, p.tenantId).all()
+    oldItems.results?.forEach((i: any) => {
+      if (i.product_id) stmts.push(c.env.DB.prepare('UPDATE products SET stock = stock - ? WHERE id = ? AND tenant_id = ?').bind(i.quantity, i.product_id, p.tenantId))
+    })
+  }
+
+  stmts.push(c.env.DB.prepare('UPDATE purchase_orders SET supplier_id=?, subtotal=?, discount=?, total=?, paid=?, remaining=?, status=?, notes=? WHERE id=? AND tenant_id=?').bind(b.supplier_id || null, b.subtotal || 0, b.discount || 0, b.total || 0, b.paid || 0, b.remaining || 0, b.status || 'received', b.notes || '', orderId, p.tenantId))
+
+  stmts.push(c.env.DB.prepare('DELETE FROM purchase_items WHERE order_id=? AND tenant_id=?').bind(orderId, p.tenantId))
+
+  for (const item of b.items) {
+    stmts.push(c.env.DB.prepare('INSERT INTO purchase_items (id, tenant_id, order_id, product_id, product_name, quantity, cost_price, total) VALUES (?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(), p.tenantId, orderId, item.product_id || null, item.product_name || item.name, item.quantity, item.cost_price, item.total))
+    if (item.product_id && b.status === 'received') {
+      stmts.push(c.env.DB.prepare('UPDATE products SET stock = stock + ?, cost_price = ? WHERE id = ? AND tenant_id = ?').bind(item.quantity, item.cost_price, item.product_id, p.tenantId))
+    }
+  }
+
+  await c.env.DB.batch(stmts)
+  return c.json({ success: true })
 })
 
 // ─── Tenant-Side: Reports ─────────────────────────────────────────────────────

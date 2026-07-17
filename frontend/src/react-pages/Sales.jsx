@@ -39,7 +39,7 @@ export default function Sales() {
 
   const handleRefund = async (id) => {
     if (!(await confirmAction('هل تريد استرجاع هذه الفاتورة؟ سيتم إعادة المخزون.'))) return;
-    try { await api.put(`/sales/${id}/refund`); toast.success('تم الاسترجاع'); load(); setViewSale(null); }
+    try { await api.put(`/sales/${id}/status`, { status: 'refunded' }); toast.success('تم الاسترجاع'); load(); setViewSale(null); }
     catch (err) { toast.error(err.response?.data?.message || 'خطأ'); }
   };
 
