@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// ../.wrangler/tmp/bundle-eHAqzy/checked-fetch.js
+// ../.wrangler/tmp/bundle-hhnHea/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -3869,7 +3869,7 @@ app.get("/api/protected/reports/dashboard", async (c) => {
     c.env.DB.prepare("SELECT COUNT(*) as count FROM products WHERE tenant_id=? AND active=1 AND stock <= min_stock").bind(p.tenantId).first(),
     c.env.DB.prepare("SELECT COUNT(*) as count FROM customers WHERE tenant_id=?").bind(p.tenantId).first(),
     c.env.DB.prepare("SELECT date(created_at) as date, COALESCE(SUM(total),0) as total FROM sales WHERE tenant_id=? AND created_at >= date('now', '-6 days') AND status!='refunded' GROUP BY date(created_at) ORDER BY date(created_at) ASC").bind(p.tenantId).all(),
-    c.env.DB.prepare("SELECT product_name as name, SUM(quantity) as qty, SUM(total) as total FROM sale_items i JOIN sales s ON i.sale_id = s.id WHERE i.tenant_id=? AND s.status!='refunded' GROUP BY product_name ORDER BY qty DESC LIMIT 5").bind(p.tenantId).all()
+    c.env.DB.prepare("SELECT product_name as name, SUM(quantity) as qty, SUM(i.total) as total FROM sale_items i JOIN sales s ON i.sale_id = s.id WHERE i.tenant_id=? AND s.status!='refunded' GROUP BY product_name ORDER BY qty DESC LIMIT 5").bind(p.tenantId).all()
   ]);
   return c.json({
     today: {
@@ -4428,7 +4428,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-eHAqzy/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-hhnHea/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -4460,7 +4460,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-eHAqzy/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-hhnHea/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
