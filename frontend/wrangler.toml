@@ -8,4 +8,4 @@ database_name = "pos-db"
 database_id = "f4114d45-3ebd-459e-b6f7-82e509de1900"
 
 [vars]
-JWT_SECRET = "super_secure_jwt_secret_pos_2026_key"
+# JWT_SECRET must be set via `wrangler secret put JWT_SECRET` in production
