@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import api from '../api/axios';
+import api from '../../api/axios';
 import toast from 'react-hot-toast';
 import { confirmAction } from '../../utils/confirm';
 import {

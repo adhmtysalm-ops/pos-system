@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../api/axios';
+import api from '../../api/axios';
 import toast from 'react-hot-toast';
 import {
   Building2, Users, TrendingUp, AlertTriangle, Ban, CheckCircle,

@@ -1,11 +1,11 @@
-name = "pos-saas-backend"
-main = "src/index.ts"
+name = "adham-pos"
 compatibility_date = "2024-03-20"
-node_compat = true
+pages_build_output_dir = "dist"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "pos-db"
 database_id = "f4114d45-3ebd-459e-b6f7-82e509de1900"
-# local preview configuration
-preview_database_id = "DB"
+
+[vars]
+JWT_SECRET = "super_secure_jwt_secret_pos_2026_key"

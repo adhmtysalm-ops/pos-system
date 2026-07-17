@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://pos-saas-backend.adhomatya.workers.dev/api/protected',
+  baseURL: '/api/protected',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -16,7 +16,7 @@ api.interceptors.request.use(
     }
     // We handle the public login route differently
     if (config.url === '/auth/login' || config.url === '/login') {
-      config.baseURL = 'https://pos-saas-backend.adhomatya.workers.dev/api';
+      config.baseURL = '/api';
       config.url = '/login';
     }
     return config;

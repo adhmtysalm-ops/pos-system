@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { jwt, sign } from 'hono/jwt'
+import { handle } from 'hono/cloudflare-pages'
 
 type Bindings = { DB: D1Database; JWT_SECRET: string }
 type JWTPayload = { userId: string; tenantId: string; role: string; exp: number }
@@ -816,5 +817,4 @@ app.get('/api/protected/reports/attendance', async (c) => {
   return c.json({ rows: rows.results || [] })
 })
 
-
-export default app
+export const onRequest = handle(app)
