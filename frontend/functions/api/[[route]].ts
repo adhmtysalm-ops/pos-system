@@ -788,7 +788,7 @@ app.get('/api/protected/reports/dashboard', async (c) => {
     c.env.DB.prepare("SELECT COUNT(*) as count, COALESCE(SUM(total),0) as total FROM sales WHERE tenant_id=? AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now') AND status!='refunded'").bind(p.tenantId).first(),
     c.env.DB.prepare("SELECT COUNT(*) as count FROM products WHERE tenant_id=? AND active=1").bind(p.tenantId).first(),
     c.env.DB.prepare("SELECT COUNT(*) as count FROM products WHERE tenant_id=? AND active=1 AND stock <= min_stock").bind(p.tenantId).first(),
-    c.env.DB.prepare("SELECT COUNT(*) as count FROM customers WHERE tenant_id=? AND active=1").bind(p.tenantId).first(),
+    c.env.DB.prepare("SELECT COUNT(*) as count FROM customers WHERE tenant_id=?").bind(p.tenantId).first(),
     c.env.DB.prepare("SELECT date(created_at) as date, COALESCE(SUM(total),0) as total FROM sales WHERE tenant_id=? AND created_at >= date('now', '-6 days') AND status!='refunded' GROUP BY date(created_at) ORDER BY date(created_at) ASC").bind(p.tenantId).all(),
     c.env.DB.prepare("SELECT product_name as name, SUM(quantity) as qty, SUM(total) as total FROM sale_items i JOIN sales s ON i.sale_id = s.id WHERE i.tenant_id=? AND s.status!='refunded' GROUP BY product_name ORDER BY qty DESC LIMIT 5").bind(p.tenantId).all()
   ])
