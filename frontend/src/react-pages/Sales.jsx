@@ -22,7 +22,11 @@ export default function Sales() {
     if (dateFrom) params.date_from = dateFrom;
     if (dateTo) params.date_to = dateTo;
     if (status) params.status = status;
-    api.get('/sales', { params }).then(r => setSales(r.data?.data || []));
+    api.get('/sales', { params }).then(r => {
+      // offlineApi returns array directly, real API returns { data: [...] }
+      const salesData = r.data?.data ?? (Array.isArray(r.data) ? r.data : []);
+      setSales(salesData);
+    });
     api.get('/settings').then(r => setSettings(r.data));
   };
 

@@ -70,18 +70,16 @@ export default function Products() {
     e.preventDefault();
     setLoading(true);
     try {
-      const formData = new FormData();
-      Object.keys(form).forEach(key => {
-        if (form[key] !== null && form[key] !== '') {
-          formData.append(key, form[key]);
-        }
-      });
+      // Build plain object payload (works for both offline Dexie and real API)
+      const payload = { ...form };
+      // Remove null image if not uploading
+      if (!form.image) delete payload.image;
 
       if (editItem) {
-        await api.put(`/products/${editItem.id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await api.put(`/products/${editItem.id}`, payload);
         toast.success('تم تحديث المنتج');
       } else {
-        await api.post('/products', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await api.post('/products', payload);
         toast.success('تم إضافة المنتج');
       }
       setShowModal(false);

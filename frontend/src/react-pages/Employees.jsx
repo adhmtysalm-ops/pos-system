@@ -53,9 +53,14 @@ export default function Employees() {
 
   const handleDeactivate = async (id) => {
     if (!(await confirmAction('إلغاء تفعيل الموظف؟'))) return;
-    const emp = items.find(i => i.id === id);
-    await api.put(`/employees/${id}`, { ...emp, active: 0 });
-    toast.success('تم إلغاء التفعيل'); load();
+    try {
+      // Send only the active flag - avoid sending non-employee-table fields
+      await api.put(`/employees/${id}`, { active: 0 });
+      toast.success('تم إلغاء التفعيل');
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'خطأ في إلغاء التفعيل');
+    }
   };
 
   return (

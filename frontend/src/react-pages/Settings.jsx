@@ -57,6 +57,12 @@ export default function Settings() {
   };
 
   const handleDeleteUser = async (id) => {
+    // Get current logged-in user to prevent self-deletion
+    const currentUser = JSON.parse(localStorage.getItem('pos_user') || '{}');
+    if (currentUser.id === id) {
+      toast.error('لا يمكنك حذف حسابك الخاص!');
+      return;
+    }
     if (!(await confirmAction('حذف المستخدم؟'))) return;
     try { await api.delete(`/users/${id}`); toast.success('تم الحذف'); loadUsers(); }
     catch (err) { toast.error(err.response?.data?.message || 'خطأ'); }

@@ -3,20 +3,30 @@ import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, ShoppingCart, Package, Tag, Users, Truck,
   ClipboardList, UserCheck, Receipt, DollarSign, BarChart3,
-  Settings, LogOut, Menu, X, Bell, ChevronDown, Building2, Clock
+  Settings, LogOut, Menu, X, ChevronDown, Building2, Clock,
+  CreditCard, Sparkles, Shield
 } from 'lucide-react';
 import api from '../api/axios';
 
 export default function Layout({ children, currentPath = '/' }) {
-  const { user, logout, isAdmin, isSuperAdmin } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
+  const { user, logout, isAdmin, isSuperAdmin, loading } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
   const [storeName, setStoreName] = useState('نظام POS');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
 
+  // Route Guard: redirect to login if not authenticated
   useEffect(() => {
-    api.get('/settings').then(r => setStoreName(r.data.store_name || 'نظام POS')).catch(() => {});
-  }, []);
+    if (!loading && !user) {
+      window.location.href = '/login';
+    }
+  }, [loading, user]);
+
+  useEffect(() => {
+    if (user) {
+      api.get('/settings').then(r => setStoreName(r.data.store_name || 'نظام POS')).catch(() => {});
+    }
+  }, [user]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -51,16 +61,39 @@ export default function Layout({ children, currentPath = '/' }) {
   ];
 
   const superAdminLinks = [
+    { to: '/admin/dashboard', label: 'لوحة التحكم', icon: LayoutDashboard, end: true },
     { to: '/admin/tenants', label: 'إدارة المتاجر', icon: Building2 },
-    { to: '/admin/subscriptions', label: 'الاشتراكات والباقات', icon: ClipboardList },
+    { to: '/admin/subscriptions', label: 'الاشتراكات', icon: ClipboardList },
+    { to: '/admin/plans', label: 'إدارة الباقات', icon: CreditCard },
   ];
 
   const links = isSuperAdmin ? superAdminLinks : (isAdmin ? adminLinks : cashierLinks);
+
+  // Role-based Route Guard
+  useEffect(() => {
+    if (!loading && user && currentPath !== '/login') {
+      const isAllowed = links.some(link => 
+        link.to === currentPath || (link.to !== '/' && currentPath.startsWith(link.to))
+      );
+      if (!isAllowed) {
+        window.location.href = isSuperAdmin ? '/admin/dashboard' : (isAdmin ? '/' : '/pos');
+      }
+    }
+  }, [loading, user, currentPath, isSuperAdmin, isAdmin]);
 
   const handleLogout = () => {
     logout();
     window.location.href = '/login';
   };
+
+  // Show loading spinner while auth is being verified
+  if (loading || !user) {
+    return (
+      <div className="flex h-dvh items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-dvh overflow-hidden bg-gray-50">
@@ -74,18 +107,22 @@ export default function Layout({ children, currentPath = '/' }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 right-0 z-40 flex flex-col bg-white border-l border-gray-200 shadow-xl transition-all duration-300 ${
+        className={`fixed inset-y-0 right-0 z-40 flex flex-col border-l shadow-xl transition-all duration-300 ${
           sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'
-        }`}
+        } ${isSuperAdmin ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-          <div className="flex items-center justify-center w-9 h-9 bg-blue-600 rounded-xl">
-            <Building2 className="w-5 h-5 text-white" />
+        <div className={`flex items-center gap-3 px-5 py-4 border-b ${isSuperAdmin ? 'border-gray-700' : 'border-gray-100'}`}>
+          <div className={`flex items-center justify-center w-9 h-9 rounded-xl ${isSuperAdmin ? 'bg-amber-500' : 'bg-blue-600'}`}>
+            {isSuperAdmin ? <Shield className="w-5 h-5 text-white" /> : <Building2 className="w-5 h-5 text-white" />}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-gray-900 truncate">{storeName}</p>
-            <p className="text-xs text-gray-500">نظام نقطة البيع</p>
+            <p className={`text-sm font-bold truncate ${isSuperAdmin ? 'text-white' : 'text-gray-900'}`}>
+              {isSuperAdmin ? 'Super Admin' : storeName}
+            </p>
+            <p className={`text-xs ${isSuperAdmin ? 'text-amber-400' : 'text-gray-500'}`}>
+              {isSuperAdmin ? 'لوحة إدارة SaaS' : 'نظام نقطة البيع'}
+            </p>
           </div>
         </div>
 
@@ -97,7 +134,14 @@ export default function Layout({ children, currentPath = '/' }) {
             <a
               key={to}
               href={to}
-              className={`sidebar-link ${isActive ? 'active' : ''}`}
+              className={isSuperAdmin
+                ? `flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                    isActive
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  }`
+                : `sidebar-link ${isActive ? 'active' : ''}`
+              }
               onClick={() => {
                 if (window.innerWidth < 768) setSidebarOpen(false);
               }}
@@ -109,16 +153,20 @@ export default function Layout({ children, currentPath = '/' }) {
         </nav>
 
         {/* User Info */}
-        <div className="p-3 border-t border-gray-100">
-          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-50">
-            <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-700 rounded-full text-sm font-bold shrink-0">
+        <div className={`p-3 border-t ${isSuperAdmin ? 'border-gray-700' : 'border-gray-100'}`}>
+          <div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${isSuperAdmin ? 'bg-gray-800' : 'bg-gray-50'}`}>
+            <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold shrink-0 ${
+              isSuperAdmin ? 'bg-amber-500 text-white' : 'bg-blue-100 text-blue-700'
+            }`}>
               {user?.name?.[0] || 'م'}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
-              <p className="text-xs text-gray-500">{isSuperAdmin ? 'مشرف النظام' : (user?.role === 'admin' ? 'مدير' : 'كاشير')}</p>
+              <p className={`text-sm font-medium truncate ${isSuperAdmin ? 'text-white' : 'text-gray-900'}`}>{user?.name}</p>
+              <p className={`text-xs ${isSuperAdmin ? 'text-amber-400' : 'text-gray-500'}`}>
+                {isSuperAdmin ? '🔐 Super Admin' : (user?.role === 'admin' ? 'مدير' : 'كاشير')}
+              </p>
             </div>
-            <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 transition-colors" title="تسجيل الخروج">
+            <button onClick={handleLogout} className={`transition-colors ${isSuperAdmin ? 'text-gray-500 hover:text-red-400' : 'text-gray-400 hover:text-red-500'}`} title="تسجيل الخروج">
               <LogOut className="w-4 h-4" />
             </button>
           </div>

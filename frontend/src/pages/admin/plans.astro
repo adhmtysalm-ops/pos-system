@@ -1,0 +1,8 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import App from '../../components/App.jsx';
+---
+
+<Layout title="إدارة الباقات | SaaS Admin">
+	<App client:only="react" pagePath="superadmin/Plans" currentPath="/admin/plans" />
+</Layout>

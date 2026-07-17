@@ -35,8 +35,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (username, password) => {
+    // offlineApi handles '/auth/login' by calling the real API at /api/login
     const res = await api.post('/auth/login', { username, password });
     const { token, user } = res.data;
+    if (!token || !user) throw new Error('استجابة غير صحيحة من الخادم');
     localStorage.setItem('pos_token', token);
     localStorage.setItem('pos_user', JSON.stringify(user));
     setUser(user);

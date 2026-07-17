@@ -133,6 +133,7 @@ export default function Purchases() {
                 <td className="text-emerald-600">{parseFloat(o.paid).toFixed(2)}</td>
                 <td className="text-red-500">{parseFloat(o.remaining).toFixed(2)}</td>
                 <td>{o.status === 'received' ? <span className="badge-green">مستلم</span> : o.status === 'pending' ? <span className="badge-yellow">معلق</span> : <span className="badge-red">ملغي</span>}</td>
+                <td className="text-xs text-gray-500">{o.created_at ? new Date(o.created_at).toLocaleDateString('ar-EG') : '-'}</td>
                 <td>
                   <div className="flex gap-1">
                     <button onClick={() => viewDetails(o.id)} className="p-1.5 rounded hover:bg-blue-50 text-blue-600"><Eye className="w-4 h-4" /></button>
@@ -147,7 +148,7 @@ export default function Purchases() {
       </div>
 
       {showModal && (
-        <Modal title="أمر شراء جديد" onClose={() => setShowModal(false)}>
+        <Modal title={editOrderId ? 'تعديل أمر شراء' : 'أمر شراء جديد'} onClose={() => setShowModal(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>

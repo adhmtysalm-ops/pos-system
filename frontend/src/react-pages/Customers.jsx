@@ -162,7 +162,7 @@ export default function Customers() {
                   <div className="flex gap-1">
                     <button onClick={() => openCreditLedger(item)} className="p-1.5 rounded hover:bg-amber-50 text-amber-600" title="سجل الديون"><BookOpen className="w-4 h-4" /></button>
                     <button onClick={() => openEdit(item)} className="p-1.5 rounded hover:bg-blue-50 text-blue-600"><Edit2 className="w-4 h-4" /></button>
-                    {item.id !== 1 && <button onClick={() => handleDelete(item.id)} className="p-1.5 rounded hover:bg-red-50 text-red-500"><Trash2 className="w-4 h-4" /></button>}
+                    {item.name !== 'عميل نقدي' && <button onClick={() => handleDelete(item.id)} className="p-1.5 rounded hover:bg-red-50 text-red-500"><Trash2 className="w-4 h-4" /></button>}
                   </div>
                 </td>
               </tr>

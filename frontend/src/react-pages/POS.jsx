@@ -77,6 +77,7 @@ export default function POS() {
         product_name: product.name,
         barcode: product.barcode || '',
         unit_price: parseFloat(product.sell_price),
+        cost_price: parseFloat(product.cost_price || 0),
         quantity: 1,
         discount: 0,
         total: parseFloat(product.sell_price),
@@ -124,9 +125,10 @@ export default function POS() {
   const removeItem = (id) => setCart(prev => prev.filter(i => i.product_id !== id));
 
   const subtotal = cart.reduce((s, i) => s + i.total, 0);
-  const discountAmt = discountType === 'percent'
+  let discountAmt = discountType === 'percent'
     ? (subtotal * parseFloat(discount || 0)) / 100
     : parseFloat(discount || 0);
+  discountAmt = Math.min(discountAmt, subtotal);
   const total = Math.max(0, subtotal - discountAmt);
   const paidAmt = paid === '' ? 0 : parseFloat(paid);
   const change = paidAmt - total;
@@ -142,12 +144,16 @@ export default function POS() {
     setLoading(true);
     try {
       const res = await api.post('/sales', {
-        customer_id: customer?.id || 1,
-        items: cart,
+        customer_id: customer?.id || null,
+        items: cart.map(i => ({ ...i, price: i.unit_price, name: i.product_name })),
+        subtotal: subtotal,
         discount: discountAmt,
         discount_type: 'fixed',
         tax: 0,
+        total: total,
         paid: finalPaid,
+        remaining: Math.max(0, total - finalPaid),
+        change_amount: Math.max(0, finalPaid - total),
         payment_method: payMethod,
       });
       toast.success('تم إنشاء الفاتورة بنجاح!');
@@ -447,7 +453,7 @@ export default function POS() {
                 key={v}
                 onClick={() => {
                   setPayMethod(v);
-                  if (v === 'credit') setPaid(0);
+                  if (v === 'credit') setPaid('');
                   else setPaid('');
                 }}
                 className={`flex flex-col items-center p-2 rounded-lg text-xs font-medium transition-all border ${

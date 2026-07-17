@@ -25,7 +25,11 @@ export default function Login() {
         window.location.href = user.role === 'cashier' ? '/pos' : '/';
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'خطأ في تسجيل الدخول');
+      const errMsg = err.response?.data?.error 
+        || err.response?.data?.message 
+        || err.message 
+        || 'خطأ في تسجيل الدخول';
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
