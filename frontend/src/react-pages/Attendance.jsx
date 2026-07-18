@@ -20,7 +20,7 @@ function Modal({ title, onClose, children }) {
 }
 
 export default function Attendance() {
-  const { isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [records, setRecords] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -126,30 +126,47 @@ export default function Attendance() {
       )}
 
       {/* Personal Action for Cashier */}
-      {!isAdmin && (
-        <div className="bg-white rounded-xl border p-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-gray-800">تسجيل الحضور والانصراف الخاص بي</h2>
-            <p className="text-sm text-gray-500 mt-1">قم بتسجيل وقت دخولك وخروجك ليوم العمل الحالي.</p>
+      {!isAdmin && (() => {
+        const myRecord = records.find(r => r.employee_id === user.id);
+        const hasCheckedIn = !!myRecord?.check_in;
+        const hasCheckedOut = !!myRecord?.check_out;
+
+        return (
+          <div className="bg-white rounded-xl border p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800">تسجيل الحضور والانصراف الخاص بي</h2>
+              <p className="text-sm text-gray-500 mt-1">قم بتسجيل وقت دخولك وخروجك ليوم العمل الحالي.</p>
+            </div>
+            <div className="flex gap-3 w-full md:w-auto">
+              {!hasCheckedIn && (
+                <button onClick={async () => {
+                  try { await api.post('/attendance/me/checkin'); toast.success('تم تسجيل حضورك بنجاح'); loadRecords(); }
+                  catch (err) { toast.error(err.response?.data?.message || 'خطأ'); }
+                }} className="btn-primary flex-1 md:flex-none py-3 px-6">
+                  <LogIn className="w-5 h-5" /> تسجيل الدخول (حضور)
+                </button>
+              )}
+              {hasCheckedIn && !hasCheckedOut && (
+                <button onClick={async () => {
+                  try { await api.post('/attendance/me/checkout'); toast.success('تم تسجيل انصرافك بنجاح'); loadRecords(); }
+                  catch (err) { toast.error(err.response?.data?.message || 'خطأ'); }
+                }} className="btn-warning flex-1 md:flex-none py-3 px-6">
+                  <LogOut className="w-5 h-5" /> تسجيل الخروج (انصراف)
+                </button>
+              )}
+              {hasCheckedIn && hasCheckedOut && (
+                <div className="px-6 py-3 bg-gray-100 text-gray-600 rounded-xl font-medium flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5" />
+                  انتهى عملك اليوم (تم تسجيل الحضور والانصراف)
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex gap-3 w-full md:w-auto">
-            <button onClick={async () => {
-              try { await api.post('/attendance/me/checkin'); toast.success('تم تسجيل حضورك بنجاح'); loadRecords(); }
-              catch (err) { toast.error(err.response?.data?.message || 'خطأ'); }
-            }} className="btn-primary flex-1 md:flex-none py-3 px-6">
-              <LogIn className="w-5 h-5" /> تسجيل الدخول (حضور)
-            </button>
-            <button onClick={async () => {
-              try { await api.post('/attendance/me/checkout'); toast.success('تم تسجيل انصرافك بنجاح'); loadRecords(); }
-              catch (err) { toast.error(err.response?.data?.message || 'خطأ'); }
-            }} className="btn-warning flex-1 md:flex-none py-3 px-6">
-              <LogOut className="w-5 h-5" /> تسجيل الخروج (انصراف)
-            </button>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Attendance Table */}
+      {isAdmin && (
       <div className="table-container">
         <table className="table">
           <thead>
@@ -203,6 +220,7 @@ export default function Attendance() {
           </div>
         )}
       </div>
+      )}
 
       {showManual && (
         <Modal title="إدخال حضور يدوي" onClose={() => setShowManual(false)}>

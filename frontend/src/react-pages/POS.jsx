@@ -307,8 +307,8 @@ export default function POS() {
                 }`}
               >
                 <div className="w-full h-20 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg mb-2 flex items-center justify-center overflow-hidden border">
-                  {p.image ? (
-                    <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
                   ) : (
                     <Package className="w-8 h-8 text-blue-400" />
                   )}

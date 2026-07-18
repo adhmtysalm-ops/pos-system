@@ -64,7 +64,7 @@ salesRouter.post('/', async (c) => {
 })
 
 salesRouter.put('/:id/status', async (c) => {
-  const p = c.get('jwtPayload'); if (!p.tenantId || p.role === 'cashier') return c.json({ error: 'Unauthorized' }, 403)
+  const p = c.get('jwtPayload'); if (!p.tenantId || (p.role === 'cashier' && !p.canEditInvoices)) return c.json({ error: 'Unauthorized' }, 403)
   const { status } = await c.req.json()
 
   if (status === 'refunded') {
@@ -85,7 +85,7 @@ salesRouter.put('/:id/status', async (c) => {
 })
 
 salesRouter.delete('/:id', async (c) => {
-  const p = c.get('jwtPayload'); if (!p.tenantId || p.role === 'cashier') return c.json({ error: 'Unauthorized' }, 403)
+  const p = c.get('jwtPayload'); if (!p.tenantId || (p.role === 'cashier' && !p.canEditInvoices)) return c.json({ error: 'Unauthorized' }, 403)
   const saleId = c.req.param('id')
   
   const sale: any = await c.env.DB.prepare('SELECT status, remaining, customer_id FROM sales WHERE id=? AND tenant_id=?').bind(saleId, p.tenantId).first()

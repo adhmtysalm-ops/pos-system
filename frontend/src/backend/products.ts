@@ -54,9 +54,22 @@ productsRouter.post('/', async (c) => {
     if (existing) return c.json({ error: 'هذا الباركود مسجل لمنتج آخر' }, 400)
   }
 
+  let image_url = null;
+  if (b.image_base64 && c.env.IMGBB_API_KEY) {
+    try {
+      const formData = new FormData();
+      formData.append('key', c.env.IMGBB_API_KEY);
+      const baseData = b.image_base64.includes(',') ? b.image_base64.split(',')[1] : b.image_base64;
+      formData.append('image', baseData);
+      const resp = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
+      const result: any = await resp.json();
+      if (result?.data?.url) image_url = result.data.url;
+    } catch (e) { console.error('ImgBB upload error', e); }
+  }
+
   const id = crypto.randomUUID()
-  await c.env.DB.prepare('INSERT INTO products (id, tenant_id, category_id, name, barcode, description, cost_price, sell_price, stock, min_stock, unit) VALUES (?,?,?,?,?,?,?,?,?,?,?)').bind(id, p.tenantId, b.category_id || null, b.name, b.barcode || null, b.description || '', b.cost_price || 0, b.sell_price || 0, b.stock || 0, b.min_stock || 0, b.unit || 'قطعة').run()
-  return c.json({ success: true, id })
+  await c.env.DB.prepare('INSERT INTO products (id, tenant_id, category_id, name, barcode, description, cost_price, sell_price, stock, min_stock, unit, image_url) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(id, p.tenantId, b.category_id || null, b.name, b.barcode || null, b.description || '', b.cost_price || 0, b.sell_price || 0, b.stock || 0, b.min_stock || 0, b.unit || 'قطعة', image_url).run()
+  return c.json({ success: true, id, image_url })
 })
 
 productsRouter.put('/:id', async (c) => {
@@ -68,8 +81,21 @@ productsRouter.put('/:id', async (c) => {
     if (existing) return c.json({ error: 'هذا الباركود مسجل لمنتج آخر' }, 400)
   }
 
-  await c.env.DB.prepare('UPDATE products SET category_id=?, name=?, barcode=?, description=?, cost_price=?, sell_price=?, stock=?, min_stock=?, unit=?, active=?, updated_at=datetime(\'now\') WHERE id=? AND tenant_id=?').bind(b.category_id || null, b.name, b.barcode || null, b.description || '', b.cost_price || 0, b.sell_price || 0, b.stock || 0, b.min_stock || 0, b.unit || 'قطعة', b.active !== undefined ? b.active : 1, c.req.param('id'), p.tenantId).run()
-  return c.json({ success: true })
+  let image_url = b.image_url || null;
+  if (b.image_base64 && c.env.IMGBB_API_KEY) {
+    try {
+      const formData = new FormData();
+      formData.append('key', c.env.IMGBB_API_KEY);
+      const baseData = b.image_base64.includes(',') ? b.image_base64.split(',')[1] : b.image_base64;
+      formData.append('image', baseData);
+      const resp = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
+      const result: any = await resp.json();
+      if (result?.data?.url) image_url = result.data.url;
+    } catch (e) { console.error('ImgBB upload error', e); }
+  }
+
+  await c.env.DB.prepare('UPDATE products SET category_id=?, name=?, barcode=?, description=?, cost_price=?, sell_price=?, stock=?, min_stock=?, unit=?, active=?, image_url=?, updated_at=datetime(\'now\') WHERE id=? AND tenant_id=?').bind(b.category_id || null, b.name, b.barcode || null, b.description || '', b.cost_price || 0, b.sell_price || 0, b.stock || 0, b.min_stock || 0, b.unit || 'قطعة', b.active !== undefined ? b.active : 1, image_url, c.req.param('id'), p.tenantId).run()
+  return c.json({ success: true, image_url })
 })
 
 productsRouter.delete('/:id', async (c) => {

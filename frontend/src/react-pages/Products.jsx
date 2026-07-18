@@ -61,7 +61,7 @@ export default function Products() {
     setForm({
       name: p.name, barcode: p.barcode || '', category_id: p.category_id || '',
       cost_price: p.cost_price, sell_price: p.sell_price, stock: p.stock,
-      min_stock: p.min_stock, unit: p.unit, description: p.description || '', image: null
+      min_stock: p.min_stock, unit: p.unit, description: p.description || '', image: null, image_url: p.image_url
     });
     setShowModal(true);
   };
@@ -70,10 +70,17 @@ export default function Products() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Build plain object payload (works for both offline Dexie and real API)
+      // Build plain object payload
       const payload = { ...form };
-      // Remove null image if not uploading
-      if (!form.image) delete payload.image;
+      
+      if (form.image instanceof File) {
+        payload.image_base64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(form.image);
+        });
+      }
+      delete payload.image;
 
       if (editItem) {
         await api.put(`/products/${editItem.id}`, payload);
@@ -157,8 +164,8 @@ export default function Products() {
                 <td>
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center shrink-0 overflow-hidden border">
-                      {p.image ? (
-                        <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                      {p.image_url ? (
+                        <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
                       ) : (
                         <Package className="w-4 h-4 text-blue-500" />
                       )}

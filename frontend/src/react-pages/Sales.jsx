@@ -6,7 +6,8 @@ import { Search, Eye, Printer, RotateCcw, Receipt, Filter, Trash2, X } from 'luc
 import { useAuth } from '../context/AuthContext';
 
 export default function Sales() {
-  const { isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const canEdit = isAdmin || user?.canEditInvoices === 1;
   const [sales, setSales] = useState([]);
   const [settings, setSettings] = useState({});
   const [search, setSearch] = useState('');
@@ -189,10 +190,10 @@ export default function Sales() {
                   <div className="flex gap-1">
                     <button onClick={() => viewDetails(s.id)} className="p-1.5 rounded hover:bg-blue-50 text-blue-600" title="عرض"><Eye className="w-4 h-4" /></button>
                     <button onClick={() => printInvoice(s)} className="p-1.5 rounded hover:bg-gray-100 text-gray-600" title="طباعة"><Printer className="w-4 h-4" /></button>
-                    {(s.status === 'completed' || s.status === 'paid' || s.status === 'credit') && (
+                    {(s.status === 'completed' || s.status === 'paid' || s.status === 'credit') && canEdit && (
                       <button onClick={() => handleRefund(s.id)} className="p-1.5 rounded hover:bg-amber-50 text-amber-600" title="استرجاع"><RotateCcw className="w-4 h-4" /></button>
                     )}
-                    {isAdmin && (
+                    {canEdit && (
                       <button onClick={() => handleHardDelete(s.id)} className="p-1.5 rounded hover:bg-red-50 text-red-600" title="حذف نهائي"><Trash2 className="w-4 h-4" /></button>
                     )}
                   </div>
@@ -217,10 +218,10 @@ export default function Sales() {
               <h2 className="font-bold">تفاصيل الفاتورة {viewSale.invoice_number}</h2>
               <div className="flex gap-2">
                 <button onClick={() => printInvoice(viewSale)} className="btn-outline btn-sm"><Printer className="w-4 h-4" /> طباعة</button>
-                {(viewSale.status === 'completed' || viewSale.status === 'paid' || viewSale.status === 'credit') && (
+                {(viewSale.status === 'completed' || viewSale.status === 'paid' || viewSale.status === 'credit') && canEdit && (
                   <button onClick={() => handleRefund(viewSale.id)} className="btn-warning btn-sm"><RotateCcw className="w-4 h-4" /> استرجاع</button>
                 )}
-                {isAdmin && (
+                {canEdit && (
                   <button onClick={() => handleHardDelete(viewSale.id)} className="btn-danger btn-sm bg-red-600 text-white hover:bg-red-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5"><Trash2 className="w-4 h-4" /> حذف نهائي</button>
                 )}
                 <button onClick={() => setViewSale(null)} className="p-1.5 rounded hover:bg-gray-100 text-gray-500"><X className="w-5 h-5" /></button>

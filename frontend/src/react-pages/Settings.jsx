@@ -29,7 +29,7 @@ export default function Settings() {
   const [editUser, setEditUser] = useState(null);
   const [showPass, setShowPass] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [userForm, setUserForm] = useState({ name: '', username: '', password: '', role: 'cashier', active: 1, max_discount_percent: 0, can_edit_customers: 0 });
+  const [userForm, setUserForm] = useState({ name: '', username: '', password: '', role: 'cashier', active: 1, max_discount_percent: 0, can_edit_customers: 0, can_edit_invoices: 0 });
 
   const loadSettings = () => api.get('/settings').then(r => setStoreSettings(s => ({ ...s, ...r.data })));
   const loadUsers = () => api.get('/users').then(r => setUsers(r.data));
@@ -43,8 +43,8 @@ export default function Settings() {
     finally { setSaving(false); }
   };
 
-  const openAddUser = () => { setEditUser(null); setUserForm({ name: '', username: '', password: '', role: 'cashier', active: 1, max_discount_percent: 0, can_edit_customers: 0 }); setShowUserModal(true); };
-  const openEditUser = (u) => { setEditUser(u); setUserForm({ name: u.name, username: u.username, password: '', role: u.role, active: u.active, max_discount_percent: u.max_discount_percent || 0, can_edit_customers: u.can_edit_customers || 0 }); setShowUserModal(true); };
+  const openAddUser = () => { setEditUser(null); setUserForm({ name: '', username: '', password: '', role: 'cashier', active: 1, max_discount_percent: 0, can_edit_customers: 0, can_edit_invoices: 0 }); setShowUserModal(true); };
+  const openEditUser = (u) => { setEditUser(u); setUserForm({ name: u.name, username: u.username, password: '', role: u.role, active: u.active, max_discount_percent: u.max_discount_percent || 0, can_edit_customers: u.can_edit_customers || 0, can_edit_invoices: u.can_edit_invoices || 0 }); setShowUserModal(true); };
 
   const handleUserSubmit = async (e) => {
     e.preventDefault(); setSaving(true);
@@ -241,6 +241,18 @@ export default function Settings() {
                   />
                   <label htmlFor="can_edit_customers" className="text-sm font-medium text-gray-700 cursor-pointer select-none">
                     السماح بتعديل وحذف العملاء
+                  </label>
+                </div>
+                <div className="flex items-center gap-2 mt-2 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <input 
+                    type="checkbox" 
+                    id="can_edit_invoices"
+                    checked={userForm.can_edit_invoices === 1}
+                    onChange={e => setUserForm({...userForm, can_edit_invoices: e.target.checked ? 1 : 0})}
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  />
+                  <label htmlFor="can_edit_invoices" className="text-sm font-medium text-gray-700 cursor-pointer select-none">
+                    السماح باسترجاع وحذف الفواتير
                   </label>
                 </div>
               </>

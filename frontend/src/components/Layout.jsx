@@ -59,6 +59,9 @@ export default function Layout({ children, currentPath = '/' }) {
     { to: '/sales', label: 'فواتيري', icon: Receipt },
     { to: '/attendance', label: 'حضوري', icon: Clock },
   ];
+  if (user?.can_edit_customers === 1) {
+    cashierLinks.push({ to: '/customers', label: 'العملاء', icon: Users });
+  }
 
   const superAdminLinks = [
     { to: '/admin/dashboard', label: 'لوحة التحكم', icon: LayoutDashboard, end: true },
