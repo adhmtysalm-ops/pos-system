@@ -20,7 +20,10 @@ import { reportsRouter } from '../../src/backend/reports'
 
 const app = new Hono<{ Bindings: Bindings; Variables: { jwtPayload: JWTPayload } }>()
 
-app.use('*', cors())
+app.use('*', cors({
+  origin: (origin) => origin || '*', // Restrict this in production to ['https://yourdomain.com']
+  credentials: true
+}))
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 
@@ -35,6 +38,24 @@ app.route('/api', authRouter)
 app.use('/api/protected/*', async (c, next) => {
   if (!c.env.JWT_SECRET) return c.json({ error: 'Server configuration error' }, 500)
   return jwt({ secret: c.env.JWT_SECRET, alg: 'HS256' })(c, next)
+})
+
+// ─── Revocation Check Middleware ───────────────────────────────────────────────
+app.use('/api/protected/*', async (c, next) => {
+  const p = c.get('jwtPayload');
+  if (p) {
+    const user: any = await c.env.DB.prepare('SELECT active FROM users WHERE id = ?').bind(p.userId).first();
+    if (!user || user.active !== 1) return c.json({ error: 'حساب المستخدم موقوف أو غير موجود' }, 403);
+    
+    if (p.tenantId) {
+      const tenant: any = await c.env.DB.prepare('SELECT status FROM tenants WHERE id = ?').bind(p.tenantId).first();
+      if (!tenant || tenant.status !== 'active') return c.json({ error: 'حساب المتجر موقوف' }, 403);
+      
+      const sub: any = await c.env.DB.prepare('SELECT end_date FROM subscriptions WHERE tenant_id = ? ORDER BY end_date DESC LIMIT 1').bind(p.tenantId).first();
+      if (!sub || new Date(sub.end_date) < new Date()) return c.json({ error: 'انتهى الاشتراك' }, 403);
+    }
+  }
+  await next();
 })
 
 app.get('/api/protected/auth/me', async (c) => {

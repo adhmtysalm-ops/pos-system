@@ -83,9 +83,10 @@ tenantsRouter.get('/tenants', async (c) => {
   const expiry = c.req.query('expiry') || '' // 'expiring7', 'expiring30', 'expired'
 
   let conds: string[] = []
-  if (status) conds.push(`t.status = '${status}'`)
-  if (plan) conds.push(`s.plan_name = '${plan}'`)
-  if (search) conds.push(`(t.store_name LIKE '%${search}%' OR t.owner_name LIKE '%${search}%' OR t.email LIKE '%${search}%')`)
+  let params: any[] = []
+  if (status) { conds.push(`t.status = ?`); params.push(status) }
+  if (plan) { conds.push(`s.plan_name = ?`); params.push(plan) }
+  if (search) { conds.push(`(t.store_name LIKE ? OR t.owner_name LIKE ? OR t.email LIKE ?)`); params.push(`%${search}%`, `%${search}%`, `%${search}%`) }
   if (expiry === 'expiring7') conds.push(`s.end_date BETWEEN datetime('now') AND datetime('now','+7 days')`)
   else if (expiry === 'expiring30') conds.push(`s.end_date BETWEEN datetime('now') AND datetime('now','+30 days')`)
   else if (expiry === 'expired') conds.push(`s.end_date < datetime('now')`)
@@ -108,7 +109,7 @@ tenantsRouter.get('/tenants', async (c) => {
     LEFT JOIN subscriptions s ON s.tenant_id = t.id
     ${where}
     ORDER BY t.created_at DESC
-  `).all()
+  `).bind(...params).all()
   return c.json(tenants.results || [])
 })
 

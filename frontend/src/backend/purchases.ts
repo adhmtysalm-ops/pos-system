@@ -12,15 +12,39 @@ purchasesRouter.get('/', async (c) => {
 purchasesRouter.post('/', async (c) => {
   const p = c.get('jwtPayload'); if (!p.tenantId || p.role === 'cashier') return c.json({ error: 'Unauthorized' }, 403)
   const b = await c.req.json(); if (!b.items || !b.items.length) return c.json({ error: 'لا توجد عناصر' }, 400)
+  let calculatedSubtotal = 0;
+  const processedItems = [];
+
+  for (const item of b.items) {
+    const costPrice = item.cost_price || 0;
+    const itemTotal = costPrice * item.quantity;
+    calculatedSubtotal += itemTotal;
+    
+    processedItems.push({
+      product_id: item.product_id || null,
+      product_name: item.product_name || item.name || '',
+      quantity: item.quantity,
+      cost_price: costPrice,
+      total: itemTotal
+    });
+  }
+
+  const invoiceDiscount = b.discount || 0;
+  const calculatedTotal = calculatedSubtotal - invoiceDiscount;
+  const paid = b.paid || 0;
+  const remaining = Math.max(0, calculatedTotal - paid);
+
   const orderId = crypto.randomUUID(); const orderNum = `PO-${Date.now()}`
   const stmts: any[] = [
-    c.env.DB.prepare('INSERT INTO purchase_orders (id, tenant_id, supplier_id, user_id, order_number, subtotal, discount, total, paid, remaining, status, notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(orderId, p.tenantId, b.supplier_id || null, p.userId, orderNum, b.subtotal || 0, b.discount || 0, b.total || 0, b.paid || 0, b.remaining || 0, b.status || 'received', b.notes || '')
+    c.env.DB.prepare('INSERT INTO purchase_orders (id, tenant_id, supplier_id, user_id, order_number, subtotal, discount, total, paid, remaining, status, notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(orderId, p.tenantId, b.supplier_id || null, p.userId, orderNum, calculatedSubtotal, invoiceDiscount, calculatedTotal, paid, remaining, b.status || 'received', b.notes || '')
   ]
-  for (const item of b.items) {
-    stmts.push(c.env.DB.prepare('INSERT INTO purchase_items (id, tenant_id, order_id, product_id, product_name, quantity, cost_price, total) VALUES (?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(), p.tenantId, orderId, item.product_id || null, item.product_name, item.quantity, item.cost_price, item.total))
-    if (item.product_id && b.status === 'received') stmts.push(c.env.DB.prepare('UPDATE products SET stock = stock + ?, cost_price = ? WHERE id = ? AND tenant_id = ?').bind(item.quantity, item.cost_price, item.product_id, p.tenantId))
+  for (const item of processedItems) {
+    stmts.push(c.env.DB.prepare('INSERT INTO purchase_items (id, tenant_id, order_id, product_id, product_name, quantity, cost_price, total) VALUES (?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(), p.tenantId, orderId, item.product_id, item.product_name, item.quantity, item.cost_price, item.total))
+    if (item.product_id && b.status === 'received') {
+      stmts.push(c.env.DB.prepare('UPDATE products SET stock = stock + ?, cost_price = ? WHERE id = ? AND tenant_id = ?').bind(item.quantity, item.cost_price, item.product_id, p.tenantId))
+    }
   }
-  if (b.supplier_id && b.remaining > 0) stmts.push(c.env.DB.prepare('UPDATE suppliers SET balance = balance + ? WHERE id = ? AND tenant_id = ?').bind(b.remaining, b.supplier_id, p.tenantId))
+  if (b.supplier_id && remaining > 0) stmts.push(c.env.DB.prepare('UPDATE suppliers SET balance = balance + ? WHERE id = ? AND tenant_id = ?').bind(remaining, b.supplier_id, p.tenantId))
   await c.env.DB.batch(stmts)
   return c.json({ success: true, id: orderId, order_number: orderNum })
 })
@@ -50,12 +74,34 @@ purchasesRouter.put('/:id', async (c) => {
     })
   }
 
-  stmts.push(c.env.DB.prepare('UPDATE purchase_orders SET supplier_id=?, subtotal=?, discount=?, total=?, paid=?, remaining=?, status=?, notes=? WHERE id=? AND tenant_id=?').bind(b.supplier_id || null, b.subtotal || 0, b.discount || 0, b.total || 0, b.paid || 0, b.remaining || 0, b.status || 'received', b.notes || '', orderId, p.tenantId))
+  let calculatedSubtotal = 0;
+  const processedItems = [];
+
+  for (const item of b.items) {
+    const costPrice = item.cost_price || 0;
+    const itemTotal = costPrice * item.quantity;
+    calculatedSubtotal += itemTotal;
+    
+    processedItems.push({
+      product_id: item.product_id || null,
+      product_name: item.product_name || item.name || '',
+      quantity: item.quantity,
+      cost_price: costPrice,
+      total: itemTotal
+    });
+  }
+
+  const invoiceDiscount = b.discount || 0;
+  const calculatedTotal = calculatedSubtotal - invoiceDiscount;
+  const paid = b.paid || 0;
+  const remaining = Math.max(0, calculatedTotal - paid);
+
+  stmts.push(c.env.DB.prepare('UPDATE purchase_orders SET supplier_id=?, subtotal=?, discount=?, total=?, paid=?, remaining=?, status=?, notes=? WHERE id=? AND tenant_id=?').bind(b.supplier_id || null, calculatedSubtotal, invoiceDiscount, calculatedTotal, paid, remaining, b.status || 'received', b.notes || '', orderId, p.tenantId))
 
   stmts.push(c.env.DB.prepare('DELETE FROM purchase_items WHERE order_id=? AND tenant_id=?').bind(orderId, p.tenantId))
 
-  for (const item of b.items) {
-    stmts.push(c.env.DB.prepare('INSERT INTO purchase_items (id, tenant_id, order_id, product_id, product_name, quantity, cost_price, total) VALUES (?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(), p.tenantId, orderId, item.product_id || null, item.product_name || item.name, item.quantity, item.cost_price, item.total))
+  for (const item of processedItems) {
+    stmts.push(c.env.DB.prepare('INSERT INTO purchase_items (id, tenant_id, order_id, product_id, product_name, quantity, cost_price, total) VALUES (?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(), p.tenantId, orderId, item.product_id, item.product_name, item.quantity, item.cost_price, item.total))
     if (item.product_id && b.status === 'received') {
       stmts.push(c.env.DB.prepare('UPDATE products SET stock = stock + ?, cost_price = ? WHERE id = ? AND tenant_id = ?').bind(item.quantity, item.cost_price, item.product_id, p.tenantId))
     }

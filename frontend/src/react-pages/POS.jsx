@@ -177,12 +177,18 @@ export default function POS() {
       const inv = res.data;
       const s = settings;
       const w = window.open('', '_blank', 'width=400,height=600');
+      
+      const escapeHTML = (str) => {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+      };
+
       w.document.write(`
         <!DOCTYPE html>
         <html dir="rtl">
         <head>
           <meta charset="utf-8">
-          <title>فاتورة ${inv.invoice_number}</title>
+          <title>فاتورة ${escapeHTML(inv.invoice_number)}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
             * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -205,24 +211,24 @@ export default function POS() {
         </head>
         <body>
           <div class="center">
-            <div class="bold big">${s.store_name || 'متجر POS'}</div>
-            ${s.store_phone ? `<div>${s.store_phone}</div>` : ''}
-            ${s.store_address ? `<div>${s.store_address}</div>` : ''}
+            <div class="bold big">${escapeHTML(s.store_name || 'متجر POS')}</div>
+            ${s.store_phone ? `<div>${escapeHTML(s.store_phone)}</div>` : ''}
+            ${s.store_address ? `<div>${escapeHTML(s.store_address)}</div>` : ''}
           </div>
           <hr>
-          <div>رقم الفاتورة: <span class="bold">${inv.invoice_number}</span></div>
+          <div>رقم الفاتورة: <span class="bold">${escapeHTML(inv.invoice_number)}</span></div>
           <div>التاريخ: ${new Date(inv.created_at).toLocaleString('ar-EG')}</div>
-          ${inv.cashier_name ? `<div>الكاشير: ${inv.cashier_name}</div>` : ''}
-          ${inv.customer_name && inv.customer_name !== 'عميل نقدي' ? `<div>العميل: ${inv.customer_name}</div>` : ''}
-          ${customer?.phone ? `<div>هاتف: ${customer.phone}</div>` : ''}
-          ${customer?.address ? `<div>العنوان: ${customer.address}</div>` : ''}
+          ${inv.cashier_name ? `<div>الكاشير: ${escapeHTML(inv.cashier_name)}</div>` : ''}
+          ${inv.customer_name && inv.customer_name !== 'عميل نقدي' ? `<div>العميل: ${escapeHTML(inv.customer_name)}</div>` : ''}
+          ${customer?.phone ? `<div>هاتف: ${escapeHTML(customer.phone)}</div>` : ''}
+          ${customer?.address ? `<div>العنوان: ${escapeHTML(customer.address)}</div>` : ''}
           <hr>
           <table>
             <thead><tr><th>الصنف</th><th class="center-col">الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
             <tbody>
               ${inv.items.map(i => `
                 <tr>
-                  <td>${i.product_name}</td>
+                  <td>${escapeHTML(i.product_name)}</td>
                   <td class="center-col">${i.quantity}</td>
                   <td>${parseFloat(i.unit_price).toFixed(2)}</td>
                   <td>${parseFloat(i.total).toFixed(2)}</td>
@@ -232,14 +238,14 @@ export default function POS() {
           </table>
           <hr>
           <table>
-            <tr><td>الإجمالي قبل الخصم:</td><td class="bold">${parseFloat(inv.subtotal).toFixed(2)} ${s.currency || 'ج.م'}</td></tr>
+            <tr><td>الإجمالي قبل الخصم:</td><td class="bold">${parseFloat(inv.subtotal).toFixed(2)} ${escapeHTML(s.currency || 'ج.م')}</td></tr>
             ${parseFloat(inv.discount) > 0 ? `<tr><td>الخصم:</td><td>- ${parseFloat(inv.discount).toFixed(2)}</td></tr>` : ''}
-            <tr class="total-row"><td>الإجمالي:</td><td>${parseFloat(inv.total).toFixed(2)} ${s.currency || 'ج.م'}</td></tr>
+            <tr class="total-row"><td>الإجمالي:</td><td>${parseFloat(inv.total).toFixed(2)} ${escapeHTML(s.currency || 'ج.م')}</td></tr>
             <tr><td>المدفوع:</td><td>${parseFloat(inv.paid).toFixed(2)}</td></tr>
             ${parseFloat(inv.change_amount) > 0 ? `<tr><td>الباقي:</td><td>${parseFloat(inv.change_amount).toFixed(2)}</td></tr>` : ''}
           </table>
           <hr>
-          <div class="footer">${s.receipt_footer || 'شكراً لزيارتكم'}</div>
+          <div class="footer">${escapeHTML(s.receipt_footer || 'شكراً لزيارتكم')}</div>
           <script>window.onload = () => { window.print(); setTimeout(() => window.close(), 500); }</script>
         </body>
         </html>

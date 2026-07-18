@@ -33,9 +33,51 @@ salesRouter.post('/', async (c) => {
   const b = await c.req.json()
   if (!b.items || !b.items.length) return c.json({ error: 'لا توجد عناصر في الفاتورة' }, 400)
 
+  let calculatedSubtotal = 0;
+  const processedItems = [];
+
+  for (const item of b.items) {
+    let unitPrice = item.price || 0;
+    let costPrice = item.cost_price || 0;
+
+    if (item.product_id) {
+      const product: any = await c.env.DB.prepare('SELECT sell_price, cost_price, stock FROM products WHERE id=? AND tenant_id=?').bind(item.product_id, p.tenantId).first();
+      if (!product) return c.json({ error: `المنتج غير موجود: ${item.name || ''}` }, 400);
+      if (product.stock < item.quantity) return c.json({ error: `الكمية المطلوبة أكبر من المخزون: ${item.name || ''}` }, 400);
+      unitPrice = product.sell_price;
+      costPrice = product.cost_price;
+    }
+
+    const itemTotal = (unitPrice * item.quantity) - (item.discount || 0);
+    calculatedSubtotal += itemTotal;
+    processedItems.push({
+      product_id: item.product_id || null,
+      name: item.name || '',
+      barcode: item.barcode || '',
+      quantity: item.quantity,
+      cost_price: costPrice,
+      price: unitPrice,
+      discount: item.discount || 0,
+      total: itemTotal
+    });
+  }
+
+  const invoiceDiscount = b.discount || 0;
+  let calculatedTotal = calculatedSubtotal;
+  if (b.discount_type === 'percent') {
+     calculatedTotal = calculatedSubtotal - (calculatedSubtotal * invoiceDiscount / 100);
+  } else {
+     calculatedTotal = calculatedSubtotal - invoiceDiscount;
+  }
+  calculatedTotal += (b.tax || 0);
+  
+  const paid = b.paid || 0;
+  const remaining = Math.max(0, calculatedTotal - paid);
+  const change_amount = Math.max(0, paid - calculatedTotal);
+
   // Discount enforcement
-  if (p.role === 'cashier' && b.discount > 0) {
-    const discountPct = b.discount_type === 'percent' ? b.discount : (b.discount / b.subtotal * 100)
+  if (p.role === 'cashier' && invoiceDiscount > 0) {
+    const discountPct = b.discount_type === 'percent' ? invoiceDiscount : (invoiceDiscount / calculatedSubtotal * 100)
     const userData: any = await c.env.DB.prepare('SELECT max_discount_percent FROM users WHERE id = ?').bind(p.userId).first()
     if (userData && discountPct > (userData.max_discount_percent || 0))
       return c.json({ error: `الخصم المسموح به لك ${userData.max_discount_percent}% فقط` }, 403)
@@ -44,19 +86,18 @@ salesRouter.post('/', async (c) => {
   const saleId = crypto.randomUUID()
   const invoiceNum = `INV-${Date.now()}-${Math.floor(Math.random()*1000)}`
   const statements: any[] = [
-    c.env.DB.prepare('INSERT INTO sales (id, tenant_id, invoice_number, customer_id, user_id, subtotal, discount, discount_type, tax, total, paid, remaining, change_amount, payment_method, status, notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(saleId, p.tenantId, invoiceNum, b.customer_id || null, p.userId, b.subtotal || 0, b.discount || 0, b.discount_type || 'fixed', b.tax || 0, b.total || 0, b.paid || 0, b.remaining || 0, b.change_amount || 0, b.payment_method || 'cash', b.payment_method === 'credit' ? 'credit' : 'completed', b.notes || '')
+    c.env.DB.prepare('INSERT INTO sales (id, tenant_id, invoice_number, customer_id, user_id, subtotal, discount, discount_type, tax, total, paid, remaining, change_amount, payment_method, status, notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(saleId, p.tenantId, invoiceNum, b.customer_id || null, p.userId, calculatedSubtotal, invoiceDiscount, b.discount_type || 'fixed', b.tax || 0, calculatedTotal, paid, remaining, change_amount, b.payment_method || 'cash', b.payment_method === 'credit' ? 'credit' : 'completed', b.notes || '')
   ]
 
-  for (const item of b.items) {
-    const itemId = crypto.randomUUID()
-    statements.push(c.env.DB.prepare('INSERT INTO sale_items (id, tenant_id, sale_id, product_id, product_name, barcode, quantity, cost_price, unit_price, discount, total) VALUES (?,?,?,?,?,?,?,?,?,?,?)').bind(itemId, p.tenantId, saleId, item.product_id || null, item.name, item.barcode || '', item.quantity, item.cost_price || 0, item.price, item.discount || 0, item.quantity * item.price))
+  for (const item of processedItems) {
+    statements.push(c.env.DB.prepare('INSERT INTO sale_items (id, tenant_id, sale_id, product_id, product_name, barcode, quantity, cost_price, unit_price, discount, total) VALUES (?,?,?,?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(), p.tenantId, saleId, item.product_id, item.name, item.barcode, item.quantity, item.cost_price, item.price, item.discount, item.total))
     if (item.product_id) {
       statements.push(c.env.DB.prepare('UPDATE products SET stock = stock - ? WHERE id = ? AND tenant_id = ?').bind(item.quantity, item.product_id, p.tenantId))
     }
   }
 
-  if (b.customer_id && b.remaining > 0) {
-    statements.push(c.env.DB.prepare('UPDATE customers SET balance = balance + ? WHERE id = ? AND tenant_id = ?').bind(b.remaining, b.customer_id, p.tenantId))
+  if (b.customer_id && remaining > 0) {
+    statements.push(c.env.DB.prepare('UPDATE customers SET balance = balance + ? WHERE id = ? AND tenant_id = ?').bind(remaining, b.customer_id, p.tenantId))
   }
 
   await c.env.DB.batch(statements)

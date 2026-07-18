@@ -45,6 +45,13 @@ productsRouter.get('/', async (c) => {
   return c.json(rows.results || [])
 })
 
+productsRouter.get('/barcode/:code', async (c) => {
+  const p = c.get('jwtPayload'); if (!p.tenantId) return c.json({}, 403)
+  const product = await c.env.DB.prepare('SELECT * FROM products WHERE barcode=? AND tenant_id=? AND active=1').bind(c.req.param('code'), p.tenantId).first()
+  if (!product) return c.json({ error: 'Not found' }, 404)
+  return c.json(product)
+})
+
 productsRouter.post('/', async (c) => {
   const p = c.get('jwtPayload'); if (!p.tenantId || p.role !== 'admin') return c.json({ error: 'Unauthorized' }, 403)
   const b = await c.req.json(); if (!b.name) return c.json({ error: 'Name required' }, 400)

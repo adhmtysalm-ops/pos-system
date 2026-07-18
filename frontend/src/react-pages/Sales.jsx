@@ -53,9 +53,15 @@ export default function Sales() {
   const printInvoice = async (sale) => {
     const s = settings;
     const w = window.open('', '_blank', 'width=400,height=600');
+    
+    const escapeHTML = (str) => {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    };
+
     w.document.write(`
       <!DOCTYPE html><html dir="rtl">
-      <head><meta charset="utf-8"><title>فاتورة ${sale.invoice_number}</title>
+      <head><meta charset="utf-8"><title>فاتورة ${escapeHTML(sale.invoice_number)}</title>
       <style>
             @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
             * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -78,23 +84,23 @@ export default function Sales() {
         </head>
         <body>
           <div class="center">
-            <div class="bold big">${s.store_name || 'متجر POS'}</div>
-            ${s.store_phone ? `<div>${s.store_phone}</div>` : ''}
-            ${s.store_address ? `<div>${s.store_address}</div>` : ''}
+            <div class="bold big">${escapeHTML(s.store_name || 'متجر POS')}</div>
+            ${s.store_phone ? `<div>${escapeHTML(s.store_phone)}</div>` : ''}
+            ${s.store_address ? `<div>${escapeHTML(s.store_address)}</div>` : ''}
           </div>
           <hr>
-          <div>رقم الفاتورة: <span class="bold">${sale.invoice_number}</span></div>
+          <div>رقم الفاتورة: <span class="bold">${escapeHTML(sale.invoice_number)}</span></div>
           <div>التاريخ: ${new Date(sale.created_at).toLocaleString('ar-EG')}</div>
-          ${sale.customer_name && sale.customer_name !== 'عميل نقدي' ? `<div>العميل: ${sale.customer_name}</div>` : ''}
-          ${sale.customer_phone ? `<div>هاتف: ${sale.customer_phone}</div>` : ''}
-          ${sale.customer_address ? `<div>العنوان: ${sale.customer_address}</div>` : ''}
+          ${sale.customer_name && sale.customer_name !== 'عميل نقدي' ? `<div>العميل: ${escapeHTML(sale.customer_name)}</div>` : ''}
+          ${sale.customer_phone ? `<div>هاتف: ${escapeHTML(sale.customer_phone)}</div>` : ''}
+          ${sale.customer_address ? `<div>العنوان: ${escapeHTML(sale.customer_address)}</div>` : ''}
           <hr>
           <table>
             <thead><tr><th>الصنف</th><th class="center-col">الكمية</th><th>السعر</th><th>المجموع</th></tr></thead>
             <tbody>
               ${(sale.items || []).map(i => `
                 <tr>
-                  <td>${i.product_name}</td>
+                  <td>${escapeHTML(i.product_name)}</td>
                   <td class="center-col">${i.quantity}</td>
                   <td>${parseFloat(i.unit_price).toFixed(2)}</td>
                   <td>${parseFloat(i.total).toFixed(2)}</td>
@@ -105,10 +111,10 @@ export default function Sales() {
         <hr>
         <div>الإجمالي قبل الخصم: <span class="bold">${parseFloat(sale.subtotal).toFixed(2)}</span></div>
         ${parseFloat(sale.discount) > 0 ? `<div>الخصم: ${parseFloat(sale.discount).toFixed(2)}</div>` : ''}
-        <div class="bold">الإجمالي: ${parseFloat(sale.total).toFixed(2)} ${s.currency || 'ج.م'}</div>
+        <div class="bold">الإجمالي: ${parseFloat(sale.total).toFixed(2)} ${escapeHTML(s.currency || 'ج.م')}</div>
         <div>المدفوع: ${parseFloat(sale.paid).toFixed(2)}</div>
         ${parseFloat(sale.change_amount) > 0 ? `<div>الباقي: ${parseFloat(sale.change_amount).toFixed(2)}</div>` : ''}
-        <hr><div class="footer">${s.receipt_footer || 'شكراً لزيارتكم'}</div>
+        <hr><div class="footer">${escapeHTML(s.receipt_footer || 'شكراً لزيارتكم')}</div>
         <script>window.onload = () => { window.print(); setTimeout(() => window.close(), 500); }</script>
       </body></html>
     `);
