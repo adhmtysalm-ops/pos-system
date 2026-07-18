@@ -18,8 +18,11 @@ attendanceRouter.post('/me/checkin', async (c) => {
   try {
     await c.env.DB.prepare('INSERT INTO attendance (id, tenant_id, employee_id, date, check_in) VALUES (?,?,?,?,?)').bind(id, p.tenantId, p.userId, today, time).run()
     return c.json({ success: true })
-  } catch (_) {
-    return c.json({ error: 'سجل الحضور موجود مسبقاً لهذا اليوم' }, 409)
+  } catch (e: any) {
+    if (e.message.includes('UNIQUE') || e.message.includes('UNIQUE constraint failed')) {
+      return c.json({ error: 'سجل الحضور موجود مسبقاً لهذا اليوم' }, 409)
+    }
+    return c.json({ error: e.message }, 500)
   }
 })
 
