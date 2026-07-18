@@ -6,7 +6,7 @@ export const salesRouter = new Hono<{ Bindings: Bindings; Variables: { jwtPayloa
 salesRouter.get('/', async (c) => {
   const p = c.get('jwtPayload'); if (!p.tenantId) return c.json([])
   const params: any[] = [p.tenantId]
-  let q = 'SELECT s.*, c.name as customer_name FROM sales s LEFT JOIN customers c ON c.id = s.customer_id WHERE s.tenant_id = ?'
+  let q = 'SELECT s.*, c.name as customer_name, u.name as cashier_name FROM sales s LEFT JOIN customers c ON c.id = s.customer_id LEFT JOIN users u ON u.id = s.user_id WHERE s.tenant_id = ?'
   if (p.role === 'cashier') {
     q += ' AND s.user_id = ?'
     params.push(p.userId)
@@ -22,7 +22,7 @@ salesRouter.get('/', async (c) => {
 
 salesRouter.get('/:id', async (c) => {
   const p = c.get('jwtPayload'); if (!p.tenantId) return c.json({}, 403)
-  const sale: any = await c.env.DB.prepare('SELECT s.*, c.name as customer_name, c.phone as customer_phone FROM sales s LEFT JOIN customers c ON c.id = s.customer_id WHERE s.id = ? AND s.tenant_id = ?').bind(c.req.param('id'), p.tenantId).first()
+  const sale: any = await c.env.DB.prepare('SELECT s.*, c.name as customer_name, c.phone as customer_phone, u.name as cashier_name FROM sales s LEFT JOIN customers c ON c.id = s.customer_id LEFT JOIN users u ON u.id = s.user_id WHERE s.id = ? AND s.tenant_id = ?').bind(c.req.param('id'), p.tenantId).first()
   if (!sale) return c.json({ error: 'Not found' }, 404)
   const items = await c.env.DB.prepare('SELECT * FROM sale_items WHERE sale_id = ? AND tenant_id = ?').bind(c.req.param('id'), p.tenantId).all()
   return c.json({ ...sale, items: items.results || [] })

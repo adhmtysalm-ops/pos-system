@@ -10,7 +10,7 @@ authRouter.post('/login', async (c) => {
   if (!username || !password) return c.json({ error: 'اسم المستخدم وكلمة المرور مطلوبان' }, 400)
 
   const userRecord: any = await c.env.DB.prepare(
-    'SELECT id, tenant_id, name, role, max_discount_percent, password FROM users WHERE username = ? AND active = 1'
+    'SELECT id, tenant_id, name, role, max_discount_percent, can_edit_customers, password FROM users WHERE username = ? AND active = 1'
   ).bind(username).first()
 
   if (!userRecord) return c.json({ error: 'بيانات الدخول غير صحيحة أو الحساب غير نشط' }, 401)
@@ -40,8 +40,9 @@ authRouter.post('/login', async (c) => {
   const token = await sign({
     userId: user.id, tenantId: user.tenant_id, role: user.role,
     maxDiscount: user.max_discount_percent,
+    canEditCustomers: user.can_edit_customers,
     exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7
   }, c.env.JWT_SECRET)
 
-  return c.json({ token, user: { id: user.id, name: user.name, role: user.role, tenantId: user.tenant_id, maxDiscount: user.max_discount_percent } })
+  return c.json({ token, user: { id: user.id, name: user.name, role: user.role, tenantId: user.tenant_id, maxDiscount: user.max_discount_percent, canEditCustomers: user.can_edit_customers } })
 })

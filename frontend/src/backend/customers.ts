@@ -16,9 +16,9 @@ customersRouter.get('/', async (c) => {
   const params: any[] = [p.tenantId]
 
   if (search) {
-    q += ' AND (name LIKE ? OR phone LIKE ?)'
-    countQ += ' AND (name LIKE ? OR phone LIKE ?)'
-    params.push(`%${search}%`, `%${search}%`)
+    q += ' AND (name LIKE ? OR phone LIKE ? OR email LIKE ?)'
+    countQ += ' AND (name LIKE ? OR phone LIKE ? OR email LIKE ?)'
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`)
   }
 
   if (hasDebt) {
@@ -61,6 +61,7 @@ customersRouter.post('/', async (c) => {
 
 customersRouter.put('/:id', async (c) => {
   const p = c.get('jwtPayload'); if (!p.tenantId) return c.json({ error: 'No tenant' }, 403)
+  if (p.role !== 'admin' && p.canEditCustomers !== 1) return c.json({ error: 'ليس لديك صلاحية لتعديل بيانات العملاء' }, 403)
   const b = await c.req.json()
 
   if (b.phone && b.phone.trim() !== '') {
@@ -78,7 +79,8 @@ customersRouter.put('/:id', async (c) => {
 })
 
 customersRouter.delete('/:id', async (c) => {
-  const p = c.get('jwtPayload'); if (!p.tenantId || p.role !== 'admin') return c.json({ error: 'Unauthorized' }, 403)
+  const p = c.get('jwtPayload'); if (!p.tenantId) return c.json({ error: 'No tenant' }, 403)
+  if (p.role !== 'admin' && p.canEditCustomers !== 1) return c.json({ error: 'ليس لديك صلاحية لحذف العملاء' }, 403)
   const customer: any = await c.env.DB.prepare('SELECT balance FROM customers WHERE id=? AND tenant_id=?').bind(c.req.param('id'), p.tenantId).first()
   if (!customer) return c.json({ error: 'العميل غير موجود' }, 404)
   if (customer.balance !== 0) return c.json({ error: 'لا يمكن حذف عميل عليه حساب مالي معلق (دائن أو مدين)' }, 400)

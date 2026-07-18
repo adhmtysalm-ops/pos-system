@@ -1,11 +1,12 @@
 import { Hono } from 'hono'
 import type { Bindings, JWTPayload } from './types'
+import { getEgyptTime } from './utils'
 
 export const attendanceRouter = new Hono<{ Bindings: Bindings; Variables: { jwtPayload: JWTPayload } }>()
 
 attendanceRouter.get('/', async (c) => {
   const p = c.get('jwtPayload'); if (!p.tenantId) return c.json([])
-  const date = c.req.query('date') || new Date().toISOString().split('T')[0]
+  const date = c.req.query('date') || getEgyptTime().dateStr
   const rows = await c.env.DB.prepare('SELECT a.*, e.name as employee_name FROM attendance a JOIN employees e ON e.id = a.employee_id WHERE a.tenant_id = ? AND a.date = ? ORDER BY a.created_at DESC').bind(p.tenantId, date).all()
   return c.json(rows.results || [])
 })
@@ -15,8 +16,7 @@ attendanceRouter.post('/checkin', async (c) => {
   const { employee_id } = await c.req.json()
   const emp: any = await c.env.DB.prepare('SELECT id FROM employees WHERE id = ? AND tenant_id = ?').bind(employee_id, p.tenantId).first()
   if (!emp) return c.json({ error: 'الموظف غير موجود' }, 404)
-  const today = new Date().toISOString().split('T')[0]
-  const time = new Date().toTimeString().split(' ')[0].slice(0, 5)
+  const { dateStr: today, timeStr: time } = getEgyptTime()
   const id = crypto.randomUUID()
   try {
     await c.env.DB.prepare('INSERT INTO attendance (id, tenant_id, employee_id, date, check_in) VALUES (?,?,?,?,?)').bind(id, p.tenantId, employee_id, today, time).run()
@@ -31,8 +31,7 @@ attendanceRouter.post('/checkout', async (c) => {
   const { employee_id } = await c.req.json()
   const emp: any = await c.env.DB.prepare('SELECT id FROM employees WHERE id = ? AND tenant_id = ?').bind(employee_id, p.tenantId).first()
   if (!emp) return c.json({ error: 'الموظف غير موجود' }, 404)
-  const today = new Date().toISOString().split('T')[0]
-  const time = new Date().toTimeString().split(' ')[0].slice(0, 5)
+  const { dateStr: today, timeStr: time } = getEgyptTime()
   await c.env.DB.prepare("UPDATE attendance SET check_out=? WHERE tenant_id=? AND employee_id=? AND date=? AND check_out IS NULL").bind(time, p.tenantId, employee_id, today).run()
   return c.json({ success: true })
 })

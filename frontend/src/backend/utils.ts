@@ -32,3 +32,10 @@ export function requireSuperAdmin(c: any) {
   if (p.role !== 'superadmin') return c.json({ error: 'Unauthorized – superadmin only' }, 403)
   return null
 }
+
+export function getEgyptTime() {
+  const d = new Date()
+  const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d)
+  const timeStr = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit', hour12: false }).format(d)
+  return { dateStr, timeStr }
+}

@@ -212,6 +212,7 @@ export default function POS() {
           <hr>
           <div>رقم الفاتورة: <span class="bold">${inv.invoice_number}</span></div>
           <div>التاريخ: ${new Date(inv.created_at).toLocaleString('ar-EG')}</div>
+          ${inv.cashier_name ? `<div>الكاشير: ${inv.cashier_name}</div>` : ''}
           ${inv.customer_name && inv.customer_name !== 'عميل نقدي' ? `<div>العميل: ${inv.customer_name}</div>` : ''}
           ${customer?.phone ? `<div>هاتف: ${customer.phone}</div>` : ''}
           ${customer?.address ? `<div>العنوان: ${customer.address}</div>` : ''}
