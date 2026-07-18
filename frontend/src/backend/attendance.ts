@@ -14,9 +14,24 @@ attendanceRouter.get('/', async (c) => {
 attendanceRouter.post('/me/checkin', async (c) => {
   const p = c.get('jwtPayload'); if (!p.tenantId) return c.json({ error: 'No tenant' }, 403)
   const { dateStr: today, timeStr: time } = getEgyptTime()
+  
+  // Find or create employee record for this user
+  let emp: any = await c.env.DB.prepare('SELECT id FROM employees WHERE user_id = ? AND tenant_id = ?').bind(p.userId, p.tenantId).first()
+  let employeeId = emp ? emp.id : null;
+  if (!emp) {
+    let empById: any = await c.env.DB.prepare('SELECT id FROM employees WHERE id = ? AND tenant_id = ?').bind(p.userId, p.tenantId).first()
+    if (empById) {
+      employeeId = empById.id;
+    } else {
+      employeeId = p.userId;
+      const user: any = await c.env.DB.prepare('SELECT name FROM users WHERE id = ?').bind(p.userId).first()
+      await c.env.DB.prepare('INSERT INTO employees (id, tenant_id, user_id, name, position) VALUES (?, ?, ?, ?, ?)').bind(employeeId, p.tenantId, p.userId, user?.name || 'Cashier', 'cashier').run()
+    }
+  }
+
   const id = crypto.randomUUID()
   try {
-    await c.env.DB.prepare('INSERT INTO attendance (id, tenant_id, employee_id, date, check_in) VALUES (?,?,?,?,?)').bind(id, p.tenantId, p.userId, today, time).run()
+    await c.env.DB.prepare('INSERT INTO attendance (id, tenant_id, employee_id, date, check_in) VALUES (?,?,?,?,?)').bind(id, p.tenantId, employeeId, today, time).run()
     return c.json({ success: true })
   } catch (e: any) {
     if (e.message.includes('UNIQUE') || e.message.includes('UNIQUE constraint failed')) {
@@ -29,7 +44,20 @@ attendanceRouter.post('/me/checkin', async (c) => {
 attendanceRouter.post('/me/checkout', async (c) => {
   const p = c.get('jwtPayload'); if (!p.tenantId) return c.json({ error: 'No tenant' }, 403)
   const { dateStr: today, timeStr: time } = getEgyptTime()
-  const res = await c.env.DB.prepare("UPDATE attendance SET check_out=? WHERE tenant_id=? AND employee_id=? AND date=? AND check_out IS NULL").bind(time, p.tenantId, p.userId, today).run()
+
+  // Find employee id for this user
+  let emp: any = await c.env.DB.prepare('SELECT id FROM employees WHERE user_id = ? AND tenant_id = ?').bind(p.userId, p.tenantId).first()
+  let employeeId = emp ? emp.id : null;
+  if (!emp) {
+    let empById: any = await c.env.DB.prepare('SELECT id FROM employees WHERE id = ? AND tenant_id = ?').bind(p.userId, p.tenantId).first()
+    if (empById) {
+      employeeId = empById.id;
+    } else {
+      return c.json({ error: 'لم يتم العثور على سجل الموظف' }, 404)
+    }
+  }
+
+  const res = await c.env.DB.prepare("UPDATE attendance SET check_out=? WHERE tenant_id=? AND employee_id=? AND date=? AND check_out IS NULL").bind(time, p.tenantId, employeeId, today).run()
   if (res.meta.changes === 0) return c.json({ error: 'لم يتم تسجيل حضور اليوم أو تم تسجيل الانصراف مسبقاً' }, 400)
   return c.json({ success: true })
 })

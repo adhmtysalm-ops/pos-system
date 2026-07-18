@@ -39,7 +39,7 @@ app.use('/api/protected/*', async (c, next) => {
 
 app.get('/api/protected/auth/me', async (c) => {
   const p = c.get('jwtPayload')
-  const user = await c.env.DB.prepare('SELECT id, tenant_id as tenantId, name, role, max_discount_percent as maxDiscount FROM users WHERE id = ? AND active = 1').bind(p.userId).first()
+  const user = await c.env.DB.prepare('SELECT id, tenant_id as tenantId, name, role, max_discount_percent as maxDiscount, can_edit_customers as canEditCustomers, can_edit_invoices as canEditInvoices FROM users WHERE id = ? AND active = 1').bind(p.userId).first()
   if (!user) return c.json({ error: 'User not found' }, 404)
   return c.json(user)
 })
